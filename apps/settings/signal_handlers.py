@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 #
 import json
-
-from django.conf import LazySettings
+import os
+import shutil
+from django.db import connections
+from django.conf import LazySettings, settings
 from django.db.models.signals import post_save
 from django.db.utils import ProgrammingError, OperationalError
 from django.dispatch import receiver
+from django.db.models.signals import post_migrate
 from django.utils.functional import LazyObject
+from jumpserver.const import BASE_DIR
 
 from common.decorators import on_transaction_commit
 from common.signals import django_ready
@@ -75,3 +79,34 @@ def monkey_patch_settings(sender, **kwargs):
         LazySettings.__getattr__ = monkey_patch_getattr
     except (ProgrammingError, OperationalError):
         pass
+
+
+@receiver(post_migrate, dispatch_uid='settings.signal_handlers.init_sqlite_db')
+def init_sqlite_db(sender, **kwargs):
+    db_path = settings.LEAK_PASSWORD_DB_PATH
+    if not os.path.isfile(db_path):
+        # 这里处理一下历史数据，有可能用户 copy 了旧的文件到 目录下
+        src = os.path.join(settings.PROJECT_DIR, 'data', 'leak_passwords.db')
+        if not os.path.isfile(src):
+            src = os.path.join(
+                settings.APPS_DIR, 'accounts', 'automations',
+                'check_account', 'leak_passwords.db'
+            )
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        shutil.copy(src, db_path)
+    logger.info(f'init sqlite db {db_path}')
+    return db_path
+
+
+@receiver(django_ready)
+def register_sqlite_connection(sender, **kwargs):
+    connections.databases['sqlite'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'ATOMIC_REQUESTS': False,
+        'NAME': settings.LEAK_PASSWORD_DB_PATH,
+        'TIME_ZONE': None,
+        'CONN_HEALTH_CHECKS': False,
+        'CONN_MAX_AGE': 0,
+        'OPTIONS': {},
+        'AUTOCOMMIT': True,
+    }
