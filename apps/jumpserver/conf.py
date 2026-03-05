@@ -746,6 +746,10 @@ class Config(dict):
         'OAUTH2_PROVIDER_ACCESS_TOKEN_EXPIRE_SECONDS': 60 * 60,
         'OAUTH2_PROVIDER_REFRESH_TOKEN_EXPIRE_SECONDS': 60 * 60 * 24 * 7,
         'VENDOR': 'jumpserver',
+
+        # JDMC
+        'JDMC_ENABLED': False,
+        'JDMC_SOCK_PATH': '',
     }
 
     old_config_map = {

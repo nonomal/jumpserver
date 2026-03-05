@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 #
 from pathlib import Path
+<<<<<<< HEAD
+=======
+import os
+from urllib.parse import quote
+>>>>>>> 0319ee5d5 (feat: support jdmc proxy)
 
 from .base import TEMPLATES, STATIC_DIR
 from ..const import CONFIG
@@ -275,3 +280,8 @@ VENDOR = CONFIG.VENDOR
 VENDOR_TEMPLATES_DIR = Path(STATIC_DIR) / VENDOR
 if Path(VENDOR_TEMPLATES_DIR).is_dir():
     TEMPLATES[0]['DIRS'].insert(0, VENDOR_TEMPLATES_DIR)
+
+# JDMC
+JDMC_ENABLED = CONFIG.JDMC_ENABLED
+JDMC_SOCK_PATH = CONFIG.JDMC_SOCK_PATH
+JDMC_BASE_URL = f"http+unix://{quote(JDMC_SOCK_PATH, safe='')}"
