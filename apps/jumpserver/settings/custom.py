@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 from pathlib import Path
-<<<<<<< HEAD
-=======
-import os
 from urllib.parse import quote
->>>>>>> 0319ee5d5 (feat: support jdmc proxy)
 
 from .base import TEMPLATES, STATIC_DIR
 from ..const import CONFIG
