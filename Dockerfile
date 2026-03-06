@@ -11,9 +11,9 @@ RUN echo > /opt/jumpserver/config.yml \
     if [ -n "${VERSION}" ]; then \
         sed -i "s@VERSION = .*@VERSION = '${VERSION}'@g" apps/jumpserver/const.py; \
     fi
-
 RUN set -ex \
     && export SECRET_KEY=$(head -c100 < /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 48) \
+    && test -f requirements/requirements.txt && uv pip install -r requirements/requirements.txt
     && . /opt/py3/bin/activate \
     && cd apps \
     && python manage.py compilemessages
