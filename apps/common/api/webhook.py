@@ -46,17 +46,19 @@ class WebhookApi(APIView):
         signature = request.META.get(self.signature_header, '')
         body = request.body or b''
         data = request.data
+        sender = data.get('sender', '')
         event = data.get('event', '')
         payload = data.get('payload', {})
 
         if not signature:
-            return Response({'detail': 'Missing X-Webhook-Signature'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Missing X-WEBHOOK-Signature'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not self._is_valid_signature(body, signature):
             return Response({'detail': 'Invalid webhook signature'}, status=status.HTTP_403_FORBIDDEN)
 
         webhook_signal.send(
             sender=self.__class__,
+            event_sender=sender,
             event=event,
             payload=payload,
             headers=request.headers,
