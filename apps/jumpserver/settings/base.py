@@ -167,8 +167,8 @@ PRE_CUSTOM_MIDDLEWARES = [m for m in CONFIG.PRE_CUSTOM_MIDDLEWARES.split(',') if
 POST_CUSTOM_MIDDLEWARES = [m for m in CONFIG.POST_CUSTOM_MIDDLEWARES.split(',') if m.strip()]
 
 MIDDLEWARE = [
-    *PRE_CUSTOM_MIDDLEWARES,
     'jumpserver.middleware.StartMiddleware',
+    *PRE_CUSTOM_MIDDLEWARES,
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -191,8 +191,9 @@ MIDDLEWARE = [
     'authentication.middleware.ThirdPartyLoginMiddleware',
     'authentication.middleware.SessionCookieMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
-    *POST_CUSTOM_MIDDLEWARES,
     'jumpserver.middleware.SafeRedirectMiddleware',
+    *POST_CUSTOM_MIDDLEWARES,
+    'jumpserver.middleware.EndMiddleware',
 ]
 
 if DEBUG or DEBUG_DEV:
