@@ -1,12 +1,21 @@
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 
+from common.permissions import OnlySuperUser
 
-## 此 api 返回 /etc/hostname 的值， 可以匿名访问
+
+# 此 api 返回 /etc/hostname 的值
+# 在 DEBUG_DEV 配置下可以匿名访问
 class HostnameView(APIView):
     permission_classes = (AllowAny,)
+
+    def get_permissions(self):
+        if getattr(settings, 'DEV_DEBUG', False):
+            return [AllowAny()]
+        return [OnlySuperUser()]
 
     def get(self, request):
         try:
