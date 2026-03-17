@@ -45,14 +45,14 @@ class Services(TextChoices):
 
     @classmethod
     def web_services(cls):
-        if SERVER_SIZE == 'small':
+        if SERVER_SIZE == 'small' or os.environ.get('FLOWER_DIABLED', '0') == '1':
             return [cls.gunicorn]
         else:
             return [cls.gunicorn, cls.flower]
 
     @classmethod
     def celery_services(cls):
-        if SERVER_SIZE == 'small':
+        if SERVER_SIZE == 'small' or os.environ.get('CELERY_COMBINE', '0') == '1':
             return [cls.celery_default]
         else:
             return [cls.celery_ansible, cls.celery_default]
