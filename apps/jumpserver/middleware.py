@@ -198,5 +198,6 @@ class SafeRedirectMiddleware:
 class CsrfCheckMiddleware(CsrfViewMiddleware):
     def _origin_verified(self, request):
         if IGNORE_CSRF_CHECK:
+            request._dont_enforce_csrf_checks = True
             return True
         return super()._origin_verified(request)
