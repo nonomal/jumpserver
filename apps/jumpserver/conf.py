@@ -646,6 +646,7 @@ class Config(dict):
         'SYSLOG_SOCKTYPE': 2,
 
         'PERM_EXPIRED_CHECK_PERIODIC': 60 * 60,
+        'PERM_EXPIRED_NOTICE_DAYS': 3,
         'PERM_TREE_REGEN_INTERVAL': 1,
         'FLOWER_URL': "127.0.0.1:5555",
         'LANGUAGE_CODE': 'en',
@@ -763,6 +764,12 @@ class Config(dict):
         # WEBHOOK
         'WEBHOOK_ENABLED': False,
         'WEBHOOK_TOKEN': '',
+
+        # x-forwarded-for 相关
+        'TRUSTED_IP_VERIFY_ENABLED': False,
+        'TRUSTED_IP_SOURCE_HEADER': '',
+        'TRUSTED_IP_VERIFY_SIGNATURE_HEADER': '',
+        'TRUSTED_IP_VERIFY_KEY_PATH': '',
     }
 
     old_config_map = {
