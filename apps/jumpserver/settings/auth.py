@@ -365,7 +365,12 @@ SAML_FOLDER = os.path.join(BASE_DIR, 'authentication', 'backends', 'saml2')
 AUTH_CUSTOM_SSO = CONFIG.AUTH_CUSTOM_SSO
 AUTH_CUSTOM_SSO_FILE_MD5 = CONFIG.AUTH_CUSTOM_SSO_FILE_MD5
 AUTH_CUSTOM_SSO_FILE_PATH = os.path.join(PROJECT_DIR, 'data', 'auth', 'custom_sso.py')
-if AUTH_CUSTOM_SSO and AUTH_CUSTOM_SSO_FILE_MD5 != get_file_md5(AUTH_CUSTOM_SSO_FILE_PATH):
-    # 如果启用了自定义 SSO 认证，但文件 MD5 不匹配，则不启用自定义 SSO 认证
-    AUTH_CUSTOM_SSO = False
+if AUTH_CUSTOM_SSO and AUTH_CUSTOM_SSO_FILE_MD5:
+    try:
+        md5 = AUTH_CUSTOM_SSO_FILE_MD5.split()[0]
+    except Exception:
+        md5 = AUTH_CUSTOM_SSO_FILE_MD5
+    if md5 != get_file_md5(AUTH_CUSTOM_SSO_FILE_PATH):
+        # 如果启用了自定义 SSO 认证，但文件 MD5 不匹配，则不启用自定义 SSO 认证
+        AUTH_CUSTOM_SSO = False
 AUTH_CUSTOM_SSO_QUERY_PARAMS = CONFIG.AUTH_CUSTOM_SSO_QUERY_PARAMS
