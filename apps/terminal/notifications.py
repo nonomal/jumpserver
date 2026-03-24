@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 
 from common.sdk.im.wecom import wecom_tool
 from common.utils import get_logger, reverse
-from common.utils import lazyproperty
+from common.utils import lazyproperty, text_hmac_sha256
 from common.utils.timezone import local_now_display
 from common.views.template import custom_render_to_string
 from notifications.backends import BACKEND
@@ -62,8 +62,9 @@ class CommandAlertMixin:
             emails = settings.SECURITY_INSECURE_COMMAND_EMAIL_RECEIVER
         emails = emails.split(',')
         emails = [email.strip().strip('"') for email in emails]
+        email_lookup_list = [text_hmac_sha256(email) for email in emails]
 
-        users = User.objects.filter(email__in=emails)
+        users = User.objects.filter(email_lookup__in=email_lookup_list)
         if users:
             subscription.users.add(*users)
             subscription.receive_backends = [BACKEND.EMAIL]

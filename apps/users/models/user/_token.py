@@ -7,6 +7,7 @@ from django.utils import timezone
 from common.utils import (
     get_logger,
     random_string,
+    text_hmac_sha256
 )
 
 logger = get_logger(__file__)
@@ -82,7 +83,8 @@ class TokenMixin:
         try:
             user_id = value.get("id", "")
             email = value.get("email", "")
-            user = cls.objects.get(id=user_id, email=email)
+            email_lookup = text_hmac_sha256(email)
+            user = cls.objects.get(id=user_id, email_lookup=email_lookup)
             return user
         except (AttributeError, cls.DoesNotExist) as e:
             logger.error(e, exc_info=True)

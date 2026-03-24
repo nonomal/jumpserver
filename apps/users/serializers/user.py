@@ -13,7 +13,7 @@ from common.serializers.fields import (
     LabeledChoiceField,
     PhoneField,
 )
-from common.utils import pretty_string, get_logger
+from common.utils import pretty_string, get_logger, text_hmac_sha256
 from common.validators import PhoneValidator
 from jumpserver.utils import get_current_request
 from orgs.utils import current_org
@@ -457,7 +457,8 @@ class ServiceAccountSerializer(serializers.ModelSerializer):
             users = User.objects.exclude(id=self.instance.id)
         else:
             users = User.objects.all()
-        if users.filter(email=email) or users.filter(username=username):
+        email_lookup = text_hmac_sha256(email)
+        if users.filter(email_lookup=email_lookup) or users.filter(username=username):
             raise serializers.ValidationError(_("name not unique"), code="unique")
         return name
 
