@@ -64,7 +64,9 @@ class CustomSSOLoginAPIView(AuthMixin, RetrieveAPIView):
 
     def authenticate(self, **query_params):
         try:
-            userinfo: dict = custom_sso_authenticate_method(**query_params)
+            userinfo, error = custom_sso_authenticate_method(**query_params)
+            if error:
+                return None, error
             self.next_url = userinfo.get('next_url', '/')
         except Exception as e:
             error = f'Custom SSO authenticate error: {e}'
