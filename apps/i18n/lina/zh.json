@@ -1684,6 +1684,7 @@
     "LastYear": "最近一年",
     "SelectStartAndEndDate": "请选择开始和结束日期",
     "PleaseSelectRecipients": "请选择接收人",
+    "PleaseSelectAtLeastOneReportSection": "请至少勾选一个需要显示的报表",
     "ThisFieldIsRequired": "请输入名称",
     "RequireIntervalOrCrontabSetting": "请设置周期或 Crontab",
     "ConfirmDeleteReport": "确定删除当前自定义报告吗？",

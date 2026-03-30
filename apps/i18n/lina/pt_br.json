@@ -1677,6 +1677,7 @@
     "LastYear": "Último Ano",
     "SelectStartAndEndDate": "Por favor, selecione as datas de início e fim",
     "PleaseSelectRecipients": "Por favor, selecione os destinatários",
+    "PleaseSelectAtLeastOneReportSection": "Por favor, selecione pelo menos uma seção de relatório para exibir",
     "ThisFieldIsRequired": "Este campo é obrigatório",
     "RequireIntervalOrCrontabSetting": "Por favor, defina o intervalo ou Crontab",
     "ConfirmDeleteReport": "Tem certeza de que deseja excluir este relatório personalizado?",

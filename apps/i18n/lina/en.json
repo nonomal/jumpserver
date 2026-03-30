@@ -1672,6 +1672,7 @@
     "LastYear": "Last Year",
     "SelectStartAndEndDate": "Please select start and end dates",
     "PleaseSelectRecipients": "Please select recipients",
+    "PleaseSelectAtLeastOneReportSection": "Please select at least one report section to display",
     "ThisFieldIsRequired": "This field is required",
     "RequireIntervalOrCrontabSetting": "Please set interval or Crontab",
     "ConfirmDeleteReport": "Are you sure you want to delete this custom report?",

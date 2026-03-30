@@ -1,27 +1,21 @@
-from rest_framework import mixins, serializers, status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.permissions import IsValidLicense
-from ops.mixin import PeriodTaskSerializerMixin
 from rbac.permissions import RBACPermission
 
-from reports.mixins import CREATABLE_REPORT_TYPES, REPORT_FILTER_FIELDS, build_report_content, export_table_response
+from reports.mixins import CREATABLE_REPORT_TYPES, build_report_content, export_table_response
 from reports.models import (
     Report,
-    ReportExecution,
-    ReportSendRecord,
-    execute_report,
     validate_report_payload,
 )
 from reports.views import charts_map
-from common.serializers.fields import JSONManyToManyField as JSONManyToManySerializerField
-from users.models import User
 from assets.models import Asset
 
-__all__ = ['ReportViewSet', 'ReportExecutionViewSet', 'ReportSendRecordViewSet']
+__all__ = ['ReportViewSet']
 
-USER_FILTER_KEY = 'user_id'
+ALLOWED_REPORT_DAYS = {1, 7, 30}
 
 REPORT_TYPE_ACTION_PERMS = {
     'UserLoginReport': {
@@ -65,7 +59,6 @@ def build_template_item(report_type):
         'tp': report_type,
         'title': chart_info['title'],
         'path': chart_info['path'],
-        'filters': REPORT_FILTER_FIELDS.get(report_type, []),
         'is_builtin': True,
         'actions': ['save'],
         'view_modes': ['chart', 'table'],
@@ -79,57 +72,21 @@ def serialize_report_summary(report):
         'id': str(report.id),
         'name': report.name,
         'tp': report.tp,
+        'days': report.days,
         'title': chart_info['title'],
         'path': chart_info['path'],
         'filters': filters,
-        'filter_fields': REPORT_FILTER_FIELDS.get(report.tp, []),
         'is_builtin': report.is_builtin,
         'is_active': report.is_active,
-        'is_periodic': report.is_periodic,
-        'periodic_display': report.periodic_display,
-        'date_last_run': report.date_last_run,
-        'actions': ['edit', 'delete', 'execution_history'],
+        'actions': ['edit', 'delete'],
         'view_modes': ['chart', 'table'],
     }
 
 
-def merge_report_filters(report, query_params):
-    filters = dict(report.filters or {})
-    for key in REPORT_FILTER_FIELDS.get(report.tp, []):
-        if key not in query_params:
-            continue
-        value = query_params.get(key)
-        if value in (None, ''):
-            filters.pop(key, None)
-        else:
-            filters[key] = value
-    return filters
-
-
-def build_filter_user_options(filters):
-    raw = filters.get(USER_FILTER_KEY)
-    if not raw:
-        return []
-    if isinstance(raw, list):
-        ids = [str(x) for x in raw if x]
-    else:
-        ids = [str(raw)]
-    users = list(User.objects.filter(id__in=ids))
-    return [
-        {
-            'id': str(u.id),
-            'username': u.username,
-            'name': (getattr(u, 'name', '') or getattr(u, 'display_name', '') or '')
-        }
-        for u in users
-    ]
-
-
-class ReportSerializer(PeriodTaskSerializerMixin, serializers.ModelSerializer):
-    recipients = JSONManyToManySerializerField(label='Recipients')
+class ReportSerializer(serializers.ModelSerializer):
+    days = serializers.IntegerField(required=False)
     title = serializers.SerializerMethodField()
     path = serializers.SerializerMethodField()
-    filter_fields = serializers.SerializerMethodField()
     supports_table_view = serializers.SerializerMethodField()
     actions = serializers.SerializerMethodField()
 
@@ -137,14 +94,13 @@ class ReportSerializer(PeriodTaskSerializerMixin, serializers.ModelSerializer):
         model = Report
         fields = [
             'id', 'name', 'tp', 'is_builtin', 'is_active',
-            'range_days', 'filters', 'recipients',
-            'is_periodic', 'interval', 'crontab',
-            'title', 'path', 'filter_fields', 'supports_table_view', 'actions',
-            'periodic_display', 'date_last_run', 'date_created', 'date_updated',
+            'days', 'filters',
+            'title', 'path', 'supports_table_view', 'actions',
+            'date_created', 'date_updated',
         ]
         read_only_fields = [
-            'id', 'is_builtin', 'title', 'path', 'filter_fields', 'supports_table_view', 'actions',
-            'periodic_display', 'date_last_run', 'date_created', 'date_updated',
+            'id', 'is_builtin', 'title', 'path', 'supports_table_view', 'actions',
+            'date_created', 'date_updated',
         ]
 
     @staticmethod
@@ -156,16 +112,12 @@ class ReportSerializer(PeriodTaskSerializerMixin, serializers.ModelSerializer):
         return get_report_chart_info(obj.tp)['path']
 
     @staticmethod
-    def get_filter_fields(obj):
-        return REPORT_FILTER_FIELDS.get(obj.tp, [])
-
-    @staticmethod
     def get_supports_table_view(obj):
         return True
 
     @staticmethod
     def get_actions(obj):
-        return ['edit', 'delete', 'execution_history']
+        return ['edit', 'delete']
 
     def validate_tp(self, value):
         if value not in CREATABLE_REPORT_TYPES:
@@ -174,84 +126,27 @@ class ReportSerializer(PeriodTaskSerializerMixin, serializers.ModelSerializer):
             raise serializers.ValidationError('Report type can not be modified')
         return value
 
+    def validate_days(self, value):
+        try:
+            normalized = int(value)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError('Invalid days')
+        if normalized not in ALLOWED_REPORT_DAYS:
+            raise serializers.ValidationError('Days must be one of: 1, 7, 30')
+        return normalized
+
     def validate_filters(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError('Filters must be a dict')
         validate_report_payload(self.initial_data.get('tp') or getattr(self.instance, 'tp', ''), value)
-        # Validate asset_id if present: must refer to an existing Asset id
-        asset_key = 'asset_id'
-        if asset_key in value and value.get(asset_key):
-            raw_asset = value.get(asset_key)
-            # single value expected
-            try:
-                asset_id = str(raw_asset)
-                if not Asset.objects.filter(id=asset_id).exists():
-                    raise serializers.ValidationError({'filters': {asset_key: f'Asset not found: {asset_id}'}})
-            except Exception:
-                raise serializers.ValidationError({'filters': {asset_key: f'Invalid asset id: {raw_asset}'}})
-        # Normalize user filter: accept only user id(s)
-        user_key = USER_FILTER_KEY
-        if user_key in value and value.get(user_key):
-            raw = value.get(user_key)
-            # support single value or list
-            ids = []
-            if isinstance(raw, list):
-                str_vals = [str(x) for x in raw if x]
-                users = list(User.objects.filter(id__in=str_vals))
-                if not users:
-                    raise serializers.ValidationError({'filters': {user_key: 'User ids not found'}})
-                ids = [str(u.id) for u in users]
-            else:
-                raw_str = str(raw)
-                user = User.objects.filter(id=raw_str).first()
-                if not user:
-                    raise serializers.ValidationError({'filters': {user_key: f'User id not found: {raw_str}'}})
-                ids = [str(user.id)]
-            # store single value as string, multiple as list
-            value[user_key] = ids[0] if len(ids) == 1 else ids
+        if value.get('asset_id') and not Asset.objects.filter(id=str(value.get('asset_id'))).exists():
+            raise serializers.ValidationError({'filters': {'asset_id': 'Asset not found'}})
         return value
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        filters = data.get('filters') or {}
-        data['filters'] = filters
-        # Build filter user options for frontend display
-        user_options = build_filter_user_options(filters)
-        if user_options:
-            data.setdefault('_filter_user_options', {})
-            data['_filter_user_options'][USER_FILTER_KEY] = user_options
+        data['filters'] = data.get('filters') or {}
         return data
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        is_periodic = attrs.get('is_periodic', getattr(self.instance, 'is_periodic', False))
-        recipients = attrs.get('recipients')
-        if recipients is None and self.instance is not None:
-            recipients = getattr(self.instance, 'recipients', None)
-        if is_periodic and not recipients:
-            raise serializers.ValidationError({'recipients': 'Recipients are required for periodic delivery'})
-        return attrs
-
-
-class ReportSendRecordSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ReportSendRecord
-        fields = ['id', 'execution', 'backend', 'receiver', 'report_url', 'is_success', 'error', 'detail', 'date_created']
-        read_only_fields = fields
-
-
-class ReportExecutionSerializer(serializers.ModelSerializer):
-    send_records = ReportSendRecordSerializer(many=True, read_only=True)
-    send_record_count = serializers.IntegerField(source='send_records.count', read_only=True)
-
-    class Meta:
-        model = ReportExecution
-        fields = [
-            'id', 'report', 'status', 'trigger', 'date_created', 'date_start',
-            'date_finished', 'duration', 'snapshot', 'summary',
-            'send_record_count', 'send_records',
-        ]
-        read_only_fields = fields
 
 
 class ReportViewSet(viewsets.ModelViewSet):
@@ -265,7 +160,6 @@ class ReportViewSet(viewsets.ModelViewSet):
         'update': 'rbac.view_audit',
         'partial_update': 'rbac.view_audit',
         'destroy': 'rbac.view_audit',
-        'execute': 'rbac.view_audit',
         'templates': 'rbac.view_audit',
         'catalog': 'rbac.view_audit',
         'data': 'rbac.view_audit',
@@ -345,8 +239,8 @@ class ReportViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=True, url_path='data')
     def data(self, request, *args, **kwargs):
         report = self.get_object()
-        filters = merge_report_filters(report, request.query_params)
-        days = request.query_params.get('days', report.range_days)
+        filters = dict(report.filters or {})
+        days = request.query_params.get('days', 7)
         payload, table, _ = build_report_content(report.tp, filters=filters, days=days)
         export = request.query_params.get('export')
         if export in ('table', 'csv', 'xlsx'):
@@ -355,73 +249,3 @@ class ReportViewSet(viewsets.ModelViewSet):
                 return Response(response)
             return response
         return Response(payload)
-
-    @action(methods=['post'], detail=True, url_path='execute')
-    def execute(self, request, *args, **kwargs):
-        task = execute_report.delay(str(self.get_object().id))
-        return Response({'task': str(task.id)}, status=status.HTTP_202_ACCEPTED)
-
-    @action(methods=['get'], detail=True, url_path='executions')
-    def executions(self, request, *args, **kwargs):
-        queryset = ReportExecution.objects.filter(report=self.get_object()).order_by('-date_start')
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = ReportExecutionSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = ReportExecutionSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-
-class ReportExecutionViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-):
-    queryset = ReportExecution.objects.all().order_by('-date_start')
-    serializer_class = ReportExecutionSerializer
-    permission_classes = [RBACPermission, IsValidLicense]
-    rbac_perms = {'list': 'rbac.view_audit', 'retrieve': 'rbac.view_audit'}
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        report_id = self.request.query_params.get('report')
-        if report_id:
-            queryset = queryset.filter(report_id=report_id)
-        status_value = self.request.query_params.get('status')
-        if status_value:
-            queryset = queryset.filter(status=status_value)
-        return queryset
-
-    @action(methods=['get'], detail=True, url_path='send-records')
-    def send_records(self, request, *args, **kwargs):
-        queryset = ReportSendRecord.objects.filter(execution=self.get_object()).order_by('-date_created')
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = ReportSendRecordSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = ReportSendRecordSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-
-class ReportSendRecordViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-):
-    queryset = ReportSendRecord.objects.all().order_by('-date_created')
-    serializer_class = ReportSendRecordSerializer
-    permission_classes = [RBACPermission, IsValidLicense]
-    rbac_perms = {'list': 'rbac.view_audit', 'retrieve': 'rbac.view_audit'}
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        execution_id = self.request.query_params.get('execution')
-        if execution_id:
-            queryset = queryset.filter(execution_id=execution_id)
-        receiver = self.request.query_params.get('receiver')
-        if receiver:
-            queryset = queryset.filter(receiver=receiver)
-        is_success = self.request.query_params.get('is_success')
-        if is_success is not None:
-            queryset = queryset.filter(is_success=str(is_success).lower() in ('1', 'true', 'yes'))
-        return queryset

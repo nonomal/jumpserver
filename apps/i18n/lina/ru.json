@@ -1676,6 +1676,7 @@
     "LastYear": "Последний год",
     "SelectStartAndEndDate": "Пожалуйста, выберите даты начала и окончания",
     "PleaseSelectRecipients": "Пожалуйста, выберите получателей",
+    "PleaseSelectAtLeastOneReportSection": "Пожалуйста, выберите хотя бы один раздел отчета для отображения",
     "ThisFieldIsRequired": "Это поле обязательно",
     "RequireIntervalOrCrontabSetting": "Пожалуйста, установите интервал или Crontab",
     "ConfirmDeleteReport": "Вы уверены, что хотите удалить этот пользовательский отчет?",

@@ -1676,6 +1676,7 @@
     "LastYear": "Năm qua",
     "SelectStartAndEndDate": "Vui lòng chọn ngày bắt đầu và kết thúc",
     "PleaseSelectRecipients": "Vui lòng chọn người nhận",
+    "PleaseSelectAtLeastOneReportSection": "Vui lòng chọn ít nhất một phần báo cáo để hiển thị",
     "ThisFieldIsRequired": "Trường này là bắt buộc",
     "RequireIntervalOrCrontabSetting": "Vui lòng đặt khoảng thời gian hoặc Crontab",
     "ConfirmDeleteReport": "Bạn có chắc chắn muốn xóa báo cáo tùy chỉnh này không?",

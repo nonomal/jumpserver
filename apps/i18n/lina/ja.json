@@ -1681,6 +1681,7 @@
     "LastYear": "過去 1 年",
     "SelectStartAndEndDate": "開始日と終了日を選択してください",
     "PleaseSelectRecipients": "受信者を選択してください",
+    "PleaseSelectAtLeastOneReportSection": "表示するレポートを少なくとも 1 つ選択してください",
     "ThisFieldIsRequired": "このフィールドは必須です",
     "RequireIntervalOrCrontabSetting": "間隔または Crontab を設定してください",
     "ConfirmDeleteReport": "このカスタムレポートを削除してもよろしいですか？",

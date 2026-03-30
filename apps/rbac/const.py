@@ -22,7 +22,6 @@ exclude_permissions = (
     ('common', 'setting', '*', '*'),
     ('reports', 'report', '*', '*'),
     ('reports', 'reportexecution', '*', '*'),
-    ('reports', 'reportsendrecord', '*', '*'),
 
     ('authentication', 'privatetoken', '*', '*'),
     ('authentication', 'connectiontoken', 'delete,change', 'connectiontoken'),

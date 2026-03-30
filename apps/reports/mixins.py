@@ -34,26 +34,6 @@ from terminal.models import Session
 from users.models import Source, User
 
 
-def _resolve_filter_usernames(filters):
-    """Resolve user filter values which contain user id(s).
-    Return list of username strings or None if no ids resolved.
-    """
-    if not filters:
-        return None
-    raw = filters.get('user_id')
-    if not raw:
-        return None
-    # normalize to list
-    if isinstance(raw, list):
-        values = [str(x) for x in raw if x]
-    else:
-        values = [str(raw)]
-    users = list(User.objects.filter(id__in=values))
-    if users:
-        return [u.username for u in users]
-    return None
-
-
 class DateRangeMixin:
     request: Request
     days_param = 'days'
@@ -102,15 +82,6 @@ DATE_PRESET_DAYS = {
     'last_three_months': 90,
     'last_half_year': 180,
     'last_year': 365,
-}
-
-REPORT_FILTER_FIELDS = {
-    'UserLoginReport': ['start', 'end', 'range_preset', 'user_id'],
-    'UserChangePasswordReport': ['start', 'end', 'range_preset', 'user_id'],
-    'AssetStatistics': ['start', 'end', 'range_preset', 'asset_id'],
-    'AssetReport': ['start', 'end', 'range_preset', 'asset_id'],
-    'AccountStatistics': ['start', 'end', 'range_preset', 'account'],
-    'AccountAutomationReport': ['start', 'end', 'range_preset', 'account'],
 }
 
 CREATABLE_REPORT_TYPES = (
@@ -212,24 +183,10 @@ def export_table_response(table, export):
 
 
 def build_user_login_report(filters=None, days=7):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
-    resolved_usernames = _resolve_filter_usernames(filters)
+    range_info = resolve_range(days=days)
     users = User.get_org_users()
     success_qs = UserLoginLog.filter_queryset_by_org(UserLoginLog.objects.filter(status=LoginStatusChoices.success))
     failed_qs = UserLoginLog.filter_queryset_by_org(UserLoginLog.objects.filter(status=LoginStatusChoices.failed))
-    if resolved_usernames:
-        if isinstance(resolved_usernames, (list, tuple)):
-            success_qs = success_qs.filter(username__in=resolved_usernames)
-            failed_qs = failed_qs.filter(username__in=resolved_usernames)
-        else:
-            success_qs = success_qs.filter(username=resolved_usernames)
-            failed_qs = failed_qs.filter(username=resolved_usernames)
     success_qs = filter_by_range(success_qs, 'datetime', range_info)
     failed_qs = filter_by_range(failed_qs, 'datetime', range_info)
 
@@ -299,20 +256,8 @@ def build_user_login_report(filters=None, days=7):
 
 
 def build_user_change_password_report(filters=None, days=7):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
-    resolved_usernames = _resolve_filter_usernames(filters)
+    range_info = resolve_range(days=days)
     queryset = PasswordChangeLog.filter_queryset_by_org(PasswordChangeLog.objects.all())
-    if resolved_usernames:
-        if isinstance(resolved_usernames, (list, tuple)):
-            queryset = queryset.filter(user__in=resolved_usernames)
-        else:
-            queryset = queryset.filter(user=resolved_usernames)
     queryset = filter_by_range(queryset, 'datetime', range_info)
     metric_data = defaultdict(set)
     for current_time, current_user in queryset.values_list('datetime', 'user'):
@@ -344,18 +289,9 @@ def build_user_change_password_report(filters=None, days=7):
 
 
 def build_asset_activity_report(filters=None, days=7):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
+    range_info = resolve_range(days=days)
     from reports.api.assets.base import group_stats
-    asset_id = filters.get('asset_id', '')
     queryset = Session.objects.all()
-    if asset_id:
-        queryset = queryset.filter(asset_id=asset_id)
     queryset = filter_by_range(queryset, 'date_start', range_info)
     metric_data = defaultdict(set)
     for current_time, session_id in queryset.values_list('date_start', 'id'):
@@ -406,31 +342,14 @@ def build_asset_activity_report(filters=None, days=7):
     return payload, table, range_info
 
 
-def _filter_automation_queryset_by_account(queryset, account):
-    if not account:
-        return queryset
-    ids = []
-    for automation_id, accounts in queryset.values_list('id', 'accounts'):
-        if account in (accounts or []):
-            ids.append(automation_id)
-    return queryset.filter(id__in=ids)
-
-
 def build_account_automation_report(filters=None, days=7):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
-    account = filters.get('account', '')
+    range_info = resolve_range(days=days)
     querysets = {
-        'push': _filter_automation_queryset_by_account(PushAccountAutomation.objects.all(), account),
-        'check': _filter_automation_queryset_by_account(CheckAccountAutomation.objects.all(), account),
-        'backup': _filter_automation_queryset_by_account(BackupAccountAutomation.objects.all(), account),
-        'collect': _filter_automation_queryset_by_account(GatherAccountsAutomation.objects.all(), account),
-        'change_secret': _filter_automation_queryset_by_account(ChangeSecretAutomation.objects.all(), account),
+        'push': PushAccountAutomation.objects.all(),
+        'check': CheckAccountAutomation.objects.all(),
+        'backup': BackupAccountAutomation.objects.all(),
+        'collect': GatherAccountsAutomation.objects.all(),
+        'change_secret': ChangeSecretAutomation.objects.all(),
     }
     automation_ids = []
     for queryset in querysets.values():
@@ -442,8 +361,7 @@ def build_account_automation_report(filters=None, days=7):
         AutomationTypes.gather_accounts,
         AutomationTypes.change_secret,
     ))
-    if account:
-        execution_queryset = execution_queryset.filter(automation_id__in=automation_ids)
+    execution_queryset = execution_queryset.filter(automation_id__in=automation_ids)
     execution_queryset = filter_by_range(execution_queryset, 'date_start', range_info)
     grouped = defaultdict(lambda: defaultdict(int))
     for execution in execution_queryset:
@@ -508,17 +426,8 @@ def build_account_automation_report(filters=None, days=7):
 
 
 def build_asset_statistics_report(filters=None, days=7):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
+    range_info = resolve_range(days=days)
     qs = Asset.objects.all()
-    asset_id = filters.get('asset_id')
-    if asset_id:
-        qs = qs.filter(id=str(asset_id))
 
     all_type_dict = dict(AllTypes.choices())
 
@@ -590,17 +499,8 @@ def build_asset_statistics_report(filters=None, days=7):
 
 
 def build_account_statistics_report(filters=None, days=30):
-    filters = filters or {}
-    range_info = resolve_range(
-        start=filters.get('start'),
-        end=filters.get('end'),
-        preset=filters.get('range_preset', ''),
-        days=days,
-    )
+    range_info = resolve_range(days=days)
     qs = Account.objects.all()
-    account = filters.get('account')
-    if account:
-        qs = qs.filter(username=str(account))
 
     stats = qs.aggregate(
         total=Count(1),
