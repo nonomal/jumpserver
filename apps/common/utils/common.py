@@ -183,7 +183,7 @@ def get_trusted_request_ip(request):
         )
         return '0.0.0.0'
 
-    sign_key = settings.TRUSTED_IP_SIGN_KEY
+    sign_key = settings.TRUSTED_IP_SIGN_KEY or os.environ.get('HMAC_SIGN_KEY', '')
     expected_signature = hmac.new(
         sign_key.encode(), trusted_ip.encode(), hashlib.sha256
     ).hexdigest()
