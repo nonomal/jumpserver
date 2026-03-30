@@ -486,10 +486,11 @@ def many_get(d, keys, default=None):
     return res
 
 
-def text_hmac_sha256(text: str):
+def text_hmac_sha256(text: str, secret_key: str = None):
+    if secret_key is None:
+        secret_key = settings.SECRET_KEY
     try:
         msg = text.strip().lower().encode('utf-8')
-        secret_key = settings.SECRET_KEY
         key = secret_key.encode("utf-8")
         digest = hmac.new(key, msg, hashlib.sha256).hexdigest()  # 64位十六进制字符串
     except Exception as e:
