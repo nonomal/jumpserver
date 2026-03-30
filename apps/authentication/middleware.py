@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from apps.authentication import mixins
 from audits.signal_handlers import send_login_info_to_reviewers
 from authentication.signals import post_auth_failed
-from common.utils import gen_key_pair
+from common.utils import gen_key_pair, gen_gm_key_pair
 from common.utils import get_request_ip
 
 
@@ -133,31 +133,54 @@ class SessionCookieMiddleware(MiddlewareMixin):
         session_public_key = request.session.get(session_public_key_name)
         cookie_public_key = request.COOKIES.get(session_public_key_name)
 
-        if session_public_key and session_public_key == cookie_public_key:
+        gm_enabled = settings.GMSSL_ENABLED
+        cookie_gm_enabled = request.COOKIES.get('jms_gm_ssl') == '1'
+
+        if gm_enabled and cookie_public_key:
+            try:
+                public_key_decode = base64.b64decode(cookie_public_key.encode()).decode()
+                if 'PUBLIC KEY' in public_key_decode:
+                    cookie_public_key = ''
+            except Exception:
+                cookie_public_key = ''
+        
+        if session_public_key and session_public_key == cookie_public_key \
+                and gm_enabled == cookie_gm_enabled:
             return
-
-        private_key, public_key = self.get_key_pair()
-
+        
+        private_key, public_key, gm_enabled = self.get_key_pair(gm_enabled)
         public_key_decode = base64.b64encode(public_key.encode()).decode()
 
         request.session[session_public_key_name] = public_key_decode
         request.session[session_private_key_name] = private_key
         response.set_cookie(session_public_key_name, public_key_decode)
 
-    def get_key_pair(self):
-        key_pair = cache.get(self.USER_LOGIN_ENCRYPTION_KEY_PAIR)
-        if key_pair:
-            return key_pair['private_key'], key_pair['public_key']
+        if gm_enabled:
+            request.session['jms_gm_ssl'] = '1'
+            response.set_cookie('jms_gm_ssl', '1')
 
-        private_key, public_key = gen_key_pair()
+    def get_key_pair(self, gm_enabled=False):
+        key = self.USER_LOGIN_ENCRYPTION_KEY_PAIR
+        if gm_enabled:
+            key += '_gm'
+        key_pair = cache.get(key)
+
+        if key_pair:
+            return key_pair['private_key'], key_pair['public_key'], key_pair.get('gm', False)
+
+        if gm_enabled:
+            private_key, public_key = gen_gm_key_pair()
+        else:
+            private_key, public_key = gen_key_pair()
 
         key_pair = {
             'private_key': private_key,
-            'public_key': public_key
+            'public_key': public_key,
+            'gm': gm_enabled
         }
-        cache.set(self.USER_LOGIN_ENCRYPTION_KEY_PAIR, key_pair, None)
+        cache.set(key, key_pair, None)
 
-        return private_key, public_key
+        return private_key, public_key, gm_enabled
 
     @staticmethod
     def set_cookie_session_prefix(request, response):

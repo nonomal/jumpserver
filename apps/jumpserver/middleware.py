@@ -23,6 +23,7 @@ from common.utils.common import text_hmac_sha256
 
 IGNORE_CSRF_CHECK = '*' in os.getenv("DOMAINS", "").split(',')
 
+
 class TimezoneMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response

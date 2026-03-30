@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load static %}
 
-<select id="mfa-select" name="mfa_type" class="form-control select-con"
+<select id="mfa-select" name="mfa_type" class="form-control select-con" autocomplete="off"
         onchange="selectChange(this.value)"
 >
     {% for backend in mfa_backends %}
@@ -21,6 +21,7 @@
         {% if backend.has_code %}
         <input type="text" class="form-control input-style"
                placeholder="{{ backend.placeholder }}"
+               autocomplete="off"
         >
         {% if backend.challenge_required %}
         <button class="btn btn-primary full-width btn-challenge"
