@@ -17,3 +17,23 @@ class BaseCrypto:
 
     def _decrypt(self, data: bytes) -> bytes:
         raise NotImplementedError
+
+
+class BaseCryptoSuite:
+    def encrypt(self, text):
+        raise NotImplementedError
+
+    def decrypt(self, cipher_text):
+        raise NotImplementedError
+
+    def gen_key_pair(self):
+        raise NotImplementedError
+
+    def encrypt_with_key_pair(self, text, public_key):
+        raise NotImplementedError
+
+    def decrypt_with_key_pair(self, cipher_text, private_key):
+        raise NotImplementedError
+
+    def hash(self):
+        raise NotImplementedError
