@@ -158,9 +158,9 @@ class SessionCookieMiddleware(MiddlewareMixin):
         if gm_enabled:
             request.session['jms_gm_ssl'] = '1'
             response.set_cookie('jms_gm_ssl', '1')
-        else:
-            request.session['jms_gm_ssl'] = '0'
-            response.set_cookie('jms_gm_ssl', '0')
+        elif cookie_gm_enabled:
+            request.session.pop('jms_gm_ssl', None)   # 可选：同时清掉 session
+            response.delete_cookie('jms_gm_ssl')
 
     def get_key_pair(self, gm_enabled=False):
         key = self.USER_LOGIN_ENCRYPTION_KEY_PAIR
