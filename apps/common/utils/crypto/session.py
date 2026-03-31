@@ -23,7 +23,8 @@ def decrypt_session_password(value):
     if not private_key or not value:
         return value
 
-    if current_request.session.get('jms_gm_ssl') == '1':
+    gm_enabled = current_request.session.get('jms_gm_ssl')
+    if gm_enabled:
         crypto_suite = GmCryptoSuite(None)
     else:
         crypto_suite = RsaAesCryptoSuite(None)
