@@ -27,8 +27,9 @@ from rbac.builtin import BuiltinRole
 from rbac.const import Scope
 from rbac.models import RoleBinding
 from settings.signals import setting_changed
+from users.api import user
 from .models import User, UserPasswordHistory, UserGroup
-from .signals import post_user_create
+from .signals import post_user_create, post_user_update
 
 
 logger = get_logger(__file__)
@@ -79,14 +80,27 @@ def user_authenticated_handle(user, created, source, attrs=None, **kwargs):
         user.save()
 
 
-@receiver(pre_save, sender=User)
-def set_user_email_lookup(sender, instance: User, **kwargs):
-    if instance.email:
-        email_lookup = text_hmac_sha256(instance.email)
+def set_user_email_lookup(user):
+    if user.email:
+        email_lookup = text_hmac_sha256(user.email)
     else:
         email_lookup = ''
-    logger.debug(f"Set user email_lookup: {email_lookup} for user: {instance}")
-    instance.email_lookup = email_lookup
+    if user.email_lookup == email_lookup:
+        return
+    logger.debug(f"Set user email_lookup: {email_lookup} for user: {user}")
+    user.email_lookup = email_lookup
+    user.save(update_fields=['email_lookup'])
+
+
+@receiver(post_user_create)
+@receiver(post_user_update)
+def save_user_email_lookup(sender, user, **kwargs):
+    set_user_email_lookup(user)
+
+
+@receiver(post_save, sender=User)
+def save_user_email_lookup(sender, instance, **kwargs):
+    set_user_email_lookup(instance)
 
 
 @receiver(post_save, sender=User)

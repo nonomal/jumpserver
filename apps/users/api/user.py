@@ -25,7 +25,7 @@ from ..permissions import UserObjectPermission
 from ..serializers import (
     UserSerializer, MiniUserSerializer, InviteSerializer, UserRetrieveSerializer
 )
-from ..signals import post_user_create
+from ..signals import post_user_create, post_user_update
 
 logger = get_logger(__name__)
 __all__ = [
@@ -132,6 +132,12 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
             users = [users]
         self.send_created_signal(users)
 
+    def perform_bulk(self, serializer):
+        users = serializer.save()
+        if isinstance(users, User):
+            users = [users]
+        self.send_updated_signal(users)
+
     def perform_bulk_update(self, serializer):
         user_ids = [
             d.get("id") or d.get("pk") for d in serializer.validated_data
@@ -195,6 +201,12 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
             users = [users]
         for user in users:
             post_user_create.send(self.__class__, user=user)
+
+    def send_updated_signal(self, users):
+        if not isinstance(users, list):
+            users = [users]
+        for user in users:
+            post_user_update.send(self.__class__, user=user)
 
 
 class UserChangePasswordApi(UserQuerysetMixin, generics.UpdateAPIView):
