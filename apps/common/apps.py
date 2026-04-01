@@ -20,6 +20,5 @@ class CommonConfig(AppConfig):
             if i in sys.argv:
                 return
 
-        if not os.environ.get('DJANGO_DEBUG_SHELL'):
-            django_ready.send(CommonConfig)
-            close_old_connections()
+        django_ready.send(CommonConfig)
+        close_old_connections()
