@@ -7,5 +7,3 @@ from .permission import *
 from .reporting import *
 from .serializer import *
 from .webhook import *
-from .jdmc import *
-from .file import *

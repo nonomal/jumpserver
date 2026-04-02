@@ -15,7 +15,7 @@ class CommonConfig(AppConfig):
         from . import tasks  # noqa
         from .signals import django_ready
 
-        excludes = ['migrate', 'compilemessages', 'makemigrations', 'start', 'shell', 'check']
+        excludes = ['migrate', 'compilemessages', 'makemigrations', 'check']
         for i in excludes:
             if i in sys.argv:
                 return
