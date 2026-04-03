@@ -298,9 +298,9 @@ class Config(dict):
         # Auth LDAP settings
         'AUTH_LDAP': False,
         'AUTH_LDAP_SERVER_URI': 'ldap://localhost:389',
-        'AUTH_LDAP_BIND_DN': 'cn=admin,dc=jumpserver,dc=org',
+        'AUTH_LDAP_BIND_DN': 'cn=admin,dc=example,dc=org',
         'AUTH_LDAP_BIND_PASSWORD': '',
-        'AUTH_LDAP_SEARCH_OU': 'ou=tech,dc=jumpserver,dc=org',
+        'AUTH_LDAP_SEARCH_OU': 'ou=tech,dc=example,dc=org',
         'AUTH_LDAP_SEARCH_FILTER': '(cn=%(user)s)',
         'AUTH_LDAP_START_TLS': False,
         'AUTH_LDAP_USER_ATTR_MAP': {"username": "cn", "name": "sn", "email": "mail"},
@@ -319,9 +319,9 @@ class Config(dict):
         # Auth LDAP HA settings
         'AUTH_LDAP_HA': False,
         'AUTH_LDAP_HA_SERVER_URI': 'ldap://localhost:389',
-        'AUTH_LDAP_HA_BIND_DN': 'cn=admin,dc=jumpserver,dc=org',
+        'AUTH_LDAP_HA_BIND_DN': 'cn=admin,dc=example,dc=org',
         'AUTH_LDAP_HA_BIND_PASSWORD': '',
-        'AUTH_LDAP_HA_SEARCH_OU': 'ou=tech,dc=jumpserver,dc=org',
+        'AUTH_LDAP_HA_SEARCH_OU': 'ou=tech,dc=example,dc=org',
         'AUTH_LDAP_HA_SEARCH_FILTER': '(cn=%(user)s)',
         'AUTH_LDAP_HA_START_TLS': False,
         'AUTH_LDAP_HA_USER_ATTR_MAP': {"username": "cn", "name": "sn", "email": "mail"},
