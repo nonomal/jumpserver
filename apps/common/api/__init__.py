@@ -6,4 +6,3 @@ from .patch import *
 from .permission import *
 from .reporting import *
 from .serializer import *
-from .webhook import *

@@ -762,10 +762,6 @@ class Config(dict):
         'JDMC_ENABLED': False,
         'JDMC_SOCK_PATH': '',
 
-        # WEBHOOK
-        'WEBHOOK_ENABLED': False,
-        'WEBHOOK_TOKEN': '',
-
         # x-forwarded-for 相关
         'TRUSTED_IP_VERIFY_ENABLED': False,
         'TRUSTED_IP_SOURCE_HEADER': '',
