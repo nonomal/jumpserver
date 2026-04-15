@@ -22,6 +22,7 @@ from common.drf.filters import BaseFilterSet, AttrRulesFilterBackend
 from common.utils import get_logger, is_uuid
 from orgs.mixins import generics
 from orgs.mixins.api import OrgBulkModelViewSet
+from orgs.utils import tmp_to_root_org
 from ...const import GATEWAY_NAME
 from ...notifications import BulkUpdatePlatformSkipAssetUserMsg
 
@@ -165,7 +166,8 @@ class BaseAssetViewSet(OrgBulkModelViewSet):
             error = _('Cannot create asset directly, you should create a host or other')
             return Response({'error': error}, status=400)
 
-        asset_count = self.model.objects.order_by().count()
+        with tmp_to_root_org():
+            asset_count = self.model.objects.order_by().count()
 
         if not settings.XPACK_LICENSE_IS_VALID and asset_count >= 5000:
             error = _('The number of assets exceeds the limit of 5000')
