@@ -4,9 +4,10 @@ from django.conf import settings
 from gmssl.sm4 import CryptSM4, SM4_ENCRYPT, SM4_DECRYPT
 from gmssl import sm2, sm3, func
 
-from common.sdk.gm import piico
+from common.sdk.gm import Device
 from .base import BaseCrypto, BaseCryptoSuite
 from .common import padding_key
+
 
 class GMSM4EcbCrypto(BaseCrypto):
     def __init__(self, key):
@@ -24,7 +25,7 @@ class GMSM4EcbCrypto(BaseCrypto):
         return self.sm4_decryptor.crypt_ecb(data)
 
 
-class PiicoSM4EcbCrypto(BaseCrypto):
+class GMDeviceSM4EcbCrypto(BaseCrypto):
 
     @staticmethod
     def to_16(key):
@@ -32,7 +33,7 @@ class PiicoSM4EcbCrypto(BaseCrypto):
             key += b'\0'
         return key  # 返回bytes
 
-    def __init__(self, key, device: piico.Device):
+    def __init__(self, key, device: Device):
         key = padding_key(key, 16)
         self.cipher = device.new_sm4_ebc_cipher(key)
 
@@ -42,6 +43,7 @@ class PiicoSM4EcbCrypto(BaseCrypto):
     def _decrypt(self, data: bytes) -> bytes:
         bs = self.cipher.decrypt(data)
         return bs.rstrip(b'\0')
+
 
 class Sm3Hasher:
     name = 'sm3'
@@ -119,9 +121,9 @@ def get_gm_sm4_ecb_crypto(key=None):
     return GMSM4EcbCrypto(key)
 
 
-def get_piico_gm_sm4_ecb_crypto(device, key=None):
+def get_gm_device_sm4_ecb_crypto(device, key=None):
     key = key or settings.SECRET_KEY
-    return PiicoSM4EcbCrypto(key, device)
+    return GMDeviceSM4EcbCrypto(key, device)
 
 
 def gen_gm_key_pair():

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from common.sdk.gm import piico
+from common.sdk.gm import open_gm_device, CryptoVendor
 
 from .common import *
 from .session import *
@@ -21,8 +21,8 @@ class Crypto:
     def __init__(self):
         crypt_algo = settings.SECURITY_DATA_CRYPTO_ALGO
         if not crypt_algo:
-            if settings.PIICO_DEVICE_ENABLE:
-                crypto, crypt_algo = self.get_piico_gm_crypto()
+            if settings.GM_DEVICE_ENABLE:
+                crypto, crypt_algo = self.get_gm_device_crypto()
                 self.cryptor_map[crypt_algo] = crypto
             else:
                 crypt_algo = 'aes'
@@ -35,18 +35,17 @@ class Crypto:
         self.cryptos = [cryptor, *others]
 
     def get_gm_crypto(self):
-        if settings.PIICO_DEVICE_ENABLE:
-            crypto, crypt_algo = self.get_piico_gm_crypto()
+        if settings.GM_DEVICE_ENABLE:
+            crypto, crypt_algo = self.get_gm_device_crypto()
             self.cryptor_map[crypt_algo] = crypto
         else:
             crypt_algo = 'gm'
 
-    def get_piico_gm_crypto(self):
-        piico_driver_path = settings.PIICO_DRIVER_PATH if settings.PIICO_DRIVER_PATH \
-            else "./lib/libpiico_ccmu.so"
-        device = piico.open_piico_device(piico_driver_path)
-        crypto = get_piico_gm_sm4_ecb_crypto(device)
-        return crypto, 'piico_gm'
+    def get_gm_device_crypto(self):
+        vendor = CryptoVendor.from_str(settings.GM_VENDOR_NAME)
+        device = open_gm_device(vendor)
+        crypto = get_gm_device_sm4_ecb_crypto(device)
+        return crypto, 'gm_device'
 
     @property
     def encryptor(self):
