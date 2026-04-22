@@ -32,7 +32,7 @@ class OpenPublicSettingApi(generics.RetrieveAPIView):
                     'code': code,
                     'other_codes': Language.get_other_codes(code),
                 }
-                for code, title in Language.choices
+                for code, title in Language.choices_supported()
             ]
         }
 

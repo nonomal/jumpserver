@@ -65,7 +65,7 @@ class UserLoginContextMixin:
                 'title': title,
                 'code': code
             }
-            for code, title in Language.choices
+            for code, title in Language.choices_supported()
         ]
         return langs
 
