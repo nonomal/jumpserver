@@ -267,7 +267,7 @@ class Config(dict):
 
         'AUTH_CUSTOM_SSO': False,
         'AUTH_CUSTOM_SSO_FILE_MD5': '',
-        'AUTH_CUSTOM_SSO_QUERY_PARAMS': ['token'],
+        'AUTH_CUSTOM_SSO_QUERY_PARAMS': 'token',
 
         # 临时密码
         'AUTH_TEMP_TOKEN': False,
@@ -770,7 +770,7 @@ class Config(dict):
         'TRUSTED_IP_SIGN_KEY': '',
 
         'REMOTE_APP_STORE_URL': 'https://apps.fit2cloud.com/jumpserver',
-        'LANGUAGES_SUPPORTED': [],
+        'LANGUAGES_SUPPORTED': '',
     }
 
     old_config_map = {
