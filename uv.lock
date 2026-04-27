@@ -269,20 +269,20 @@ wheels = [
 
 [[package]]
 name = "ansible"
-version = "13.2.0"
+version = "9.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansible-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/61/18/f13c9a462ef20893d30bd11c4089edee02b5ef1d31e1c2634da592732279/ansible-13.2.0.tar.gz", hash = "sha256:fac46e202d1020027341659918b39e588dd7c43cef26537d7ca7fe51c324fe31", size = 52000144, upload-time = "2025-12-30T16:42:37.456Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/63/a136e8c5ff5768c26edb2098dca116bd9cf430d8921fbbc4e199dca51655/ansible-9.13.0.tar.gz", hash = "sha256:b389a97d1e85c2b2ad6ace9e94f410111f69cc5aa3845c930c873b34c0ddd6e2", size = 41412371, upload-time = "2024-12-03T18:14:06.342Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/dc/1b0d0c7b83a75e574b3b56d179f887396d135aad5ab15cc45e121bc4d307/ansible-13.2.0-py3-none-any.whl", hash = "sha256:8a7f536542d4b18118200b8eaba40aa62ed990bd0e7b7622368b656b67db056f", size = 54530175, upload-time = "2025-12-30T16:42:32.195Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/0d/83f1bd6f90d3d5e0ff62f53743ecfc51d199cc9fb6e4992a3ce1dd15b6ac/ansible-9.13.0-py3-none-any.whl", hash = "sha256:b64c6e8cad0171576e0ed4b1fd48a5dc551128580dbb979d0e8b4cd85b969074", size = 51544382, upload-time = "2024-12-03T18:14:01.758Z" },
 ]
 
 [[package]]
 name = "ansible-core"
-version = "2.20.1.post0"
-source = { url = "https://github.com/jumpserver-dev/ansible/archive/refs/tags/v2.20.4.zip" }
+version = "2.16.18"
+source = { url = "https://github.com/jumpserver-dev/ansible/archive/refs/tags/v2.16.18.1.zip" }
 dependencies = [
     { name = "cryptography" },
     { name = "jinja2" },
@@ -290,15 +290,15 @@ dependencies = [
     { name = "pyyaml" },
     { name = "resolvelib" },
 ]
-sdist = { hash = "sha256:5d27c98ebfa403ce40fa111291e14631a27496d818f5798167d2d5cc5e1945c6" }
+sdist = { hash = "sha256:34b057b6c19ad44e27c05f35e6131a9fe3a1b15f6481d790ca3dfd4227501cd2" }
 
 [package.metadata]
 requires-dist = [
     { name = "cryptography" },
-    { name = "jinja2", specifier = ">=3.1.0" },
+    { name = "jinja2", specifier = ">=3.0.0" },
     { name = "packaging" },
     { name = "pyyaml", specifier = ">=5.1" },
-    { name = "resolvelib", specifier = ">=0.8.0,<2.0.0" },
+    { name = "resolvelib", specifier = ">=0.5.3,<1.1.0" },
 ]
 
 [[package]]
@@ -2282,8 +2282,8 @@ requires-dist = [
     { name = "aliyun-python-sdk-core", specifier = "==2.15.2" },
     { name = "amqp", specifier = "==5.1.1" },
     { name = "annotated-types", specifier = ">=0.6.0" },
-    { name = "ansible", specifier = "==13.2.0" },
-    { name = "ansible-core", url = "https://github.com/jumpserver-dev/ansible/archive/refs/tags/v2.20.4.zip" },
+    { name = "ansible", specifier = "==9.13.0" },
+    { name = "ansible-core", url = "https://github.com/jumpserver-dev/ansible/archive/refs/tags/v2.16.18.1.zip" },
     { name = "ansible-runner", url = "https://github.com/jumpserver-dev/ansible-runner/archive/refs/tags/v2.4.0.2.zip" },
     { name = "asn1crypto", specifier = "==1.5.1" },
     { name = "azure-identity", specifier = "==1.16.0" },
@@ -3894,11 +3894,11 @@ wheels = [
 
 [[package]]
 name = "resolvelib"
-version = "1.2.1"
+version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1d/14/4669927e06631070edb968c78fdb6ce8992e27c9ab2cde4b3993e22ac7af/resolvelib-1.2.1.tar.gz", hash = "sha256:7d08a2022f6e16ce405d60b68c390f054efcfd0477d4b9bd019cc941c28fad1c", size = 24575, upload-time = "2025-10-11T01:07:44.582Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/10/f699366ce577423cbc3df3280063099054c23df70856465080798c6ebad6/resolvelib-1.0.1.tar.gz", hash = "sha256:04ce76cbd63fded2078ce224785da6ecd42b9564b1390793f64ddecbe997b309", size = 21065, upload-time = "2023-03-09T05:10:38.292Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/23/c941a0d0353681ca138489983c4309e0f5095dfd902e1357004f2357ddf2/resolvelib-1.2.1-py3-none-any.whl", hash = "sha256:fb06b66c8da04172d9e72a21d7d06186d8919e32ae5ab5cdf5b9d920be805ac2", size = 18737, upload-time = "2025-10-11T01:07:43.081Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/fc/e9ccf0521607bcd244aa0b3fbd574f71b65e9ce6a112c83af988bbbe2e23/resolvelib-1.0.1-py2.py3-none-any.whl", hash = "sha256:d2da45d1a8dfee81bdd591647783e340ef3bcb104b54c383f70d422ef5cc7dbf", size = 17194, upload-time = "2023-03-09T05:10:36.214Z" },
 ]
 
 [[package]]
