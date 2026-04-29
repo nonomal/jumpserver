@@ -116,6 +116,7 @@
     var failOverWsURL = scheme + "://" + document.location.hostname + ':' + failOverPort + url;
     var term;
     var ws;
+    var vendor = "{{ vendor }}";
     var extraQuery = Object.fromEntries(new URLSearchParams(window.location.search));
     $(document).ready(function () {
         term = new Terminal({
@@ -134,7 +135,11 @@
         ws = new WebSocket(wsURL);
         ws.onmessage = function (e) {
             var data = JSON.parse(e.data);
-            term.write(data.message);
+            var message = data.message;
+            if (vendor !== 'jumpserver') {
+                message = message.replace(/jumpserver/g, vendor);
+            }
+            term.write(message);
         };
         ws.onopen = function () {
             var msg = {"task": taskId};
