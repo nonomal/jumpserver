@@ -290,7 +290,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "resolvelib" },
 ]
-sdist = { hash = "sha256:34b057b6c19ad44e27c05f35e6131a9fe3a1b15f6481d790ca3dfd4227501cd2" }
+sdist = { hash = "sha256:fb3030abe475e182d43f2ce3bbdcb522c9a9e70fea357cf23a01d461bc88bbd6" }
 
 [package.metadata]
 requires-dist = [
@@ -2365,7 +2365,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.29.0" },
     { name = "openpyxl", specifier = "==3.0.10" },
     { name = "oss2", specifier = "==2.18.1" },
-    { name = "paramiko", specifier = "==3.2.0" },
+    { name = "paramiko", specifier = "==3.5.1" },
     { name = "passlib", specifier = "==1.7.4" },
     { name = "pdf2image", specifier = "==1.17.0" },
     { name = "phonenumbers", specifier = "==8.13.17" },
@@ -2951,16 +2951,16 @@ wheels = [
 
 [[package]]
 name = "paramiko"
-version = "3.2.0"
+version = "3.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
     { name = "cryptography" },
     { name = "pynacl" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/62/cee9551811c846e9735f749dbdf05d4f9f0dbcecd66eae35b5daacf9a117/paramiko-3.2.0.tar.gz", hash = "sha256:93cdce625a8a1dc12204439d45033f3261bdb2c201648cfcdc06f9fd0f94ec29", size = 1258331, upload-time = "2023-05-25T18:12:31.688Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/15/ad6ce226e8138315f2451c2aeea985bf35ee910afb477bae7477dc3a8f3b/paramiko-3.5.1.tar.gz", hash = "sha256:b2c665bc45b2b215bd7d7f039901b14b067da00f3a11e6640995fd58f2664822", size = 1566110, upload-time = "2025-02-04T02:37:59.783Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/dc/d326721840be423d3728c1329be0c61a34ab3eec514f830c01fec31cd9ad/paramiko-3.2.0-py3-none-any.whl", hash = "sha256:df0f9dd8903bc50f2e10580af687f3015bf592a377cd438d2ec9546467a14eb8", size = 224194, upload-time = "2023-05-25T18:12:29.983Z" },
+    { url = "https://files.pythonhosted.org/packages/15/f8/c7bd0ef12954a81a1d3cea60a13946bd9a49a0036a5927770c461eade7ae/paramiko-3.5.1-py3-none-any.whl", hash = "sha256:43b9a0501fc2b5e70680388d9346cf252cfb7d00b0667c39e80eb43a408b8f61", size = 227298, upload-time = "2025-02-04T02:37:57.672Z" },
 ]
 
 [[package]]

@@ -121,6 +121,9 @@ function encryptPassword(password) {
         console.log('password is empty')
         return ''
     }
+    if (typeof password === 'number') {
+        password = password.toString()
+    }
     let publicKeyText = getCookie('jms_public_key')
     if (!publicKeyText) {
         console.log('publicKeyText is empty')
