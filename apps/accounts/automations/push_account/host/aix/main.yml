@@ -107,6 +107,7 @@
       when:
        - account.secret_type == "password"
        - check_conn_after_change or change_secret_result.failed | default(false)
+      connection: local
       delegate_to: localhost
 
     - name: "Verify {{ account.username }} SSH KEY (paramiko)"
@@ -121,4 +122,5 @@
        - account.secret_type == "ssh_key"
        - check_conn_after_change or change_secret_result.failed | default(false)
       delegate_to: localhost
+      connection: local
 

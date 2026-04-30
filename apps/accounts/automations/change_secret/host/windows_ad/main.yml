@@ -48,3 +48,4 @@
         ansible_shell_type: sh
         ansible_python_interpreter: "{{ local_python_interpreter }}"
       delegate_to: 127.0.0.1
+      connection: local

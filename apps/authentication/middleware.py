@@ -99,6 +99,7 @@ class ThirdPartyLoginMiddleware(mixins.AuthMixin):
                 'auto_redirect': True,
             }
             response = render(request, 'authentication/auth_fail_flash_message_standalone.html', context)
+            return response
         else:
             if not self.request.session.get('auth_confirm_required'):
                 post_auth_success.send(
@@ -110,6 +111,7 @@ class ThirdPartyLoginMiddleware(mixins.AuthMixin):
             if args:
                 guard_url = "%s?%s" % (guard_url, args)
             response = redirect(guard_url)
+            return response
         finally:
             if request.session.get('can_send_notifications') and \
                     self.request.session.get('auth_notice_required'):
@@ -117,7 +119,6 @@ class ThirdPartyLoginMiddleware(mixins.AuthMixin):
                 user_log_id = self.request.session.get('user_log_id')
                 auth_acl_id = self.request.session.get('auth_acl_id')
                 send_login_info_to_reviewers(user_log_id, auth_acl_id)
-            return response
 
 
 class SessionCookieMiddleware(MiddlewareMixin):
