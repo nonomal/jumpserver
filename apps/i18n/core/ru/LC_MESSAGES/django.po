@@ -10203,11 +10203,11 @@ msgstr "Существующая лицензия RDS"
 msgid ""
 "If not exist, the RDS will be in trial mode, and the trial period is 120 "
 "days. <a href=\"https://learn.microsoft.com/en-us/windows-server/remote/"
-"remote-desktop-services/rds-client-access-license\">Detail</a>"
+"remote-desktop-services/rds-client-access-license\" target=\"_blank\">Detail</a>"
 msgstr ""
 "Если лицензия отсутствует, RDS будет работать в пробном режиме в течение 120 "
 "дней. <a href='https://learn.microsoft.com/en-us/windows-server/remote/"
-"remote-desktop-services/rds-client-access-license'>Подробнее</a>"
+"remote-desktop-services/rds-client-access-license' target='_blank'>Подробнее</a>"
 
 #: terminal/serializers/applet_host.py:55
 msgid "RDS License Server"

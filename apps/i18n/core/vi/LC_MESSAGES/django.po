@@ -10194,11 +10194,11 @@ msgstr "Đã có giấy phép RDS"
 msgid ""
 "If not exist, the RDS will be in trial mode, and the trial period is 120 "
 "days. <a href=\"https://learn.microsoft.com/en-us/windows-server/remote/"
-"remote-desktop-services/rds-client-access-license\">Detail</a>"
+"remote-desktop-services/rds-client-access-license\" target=\"_blank\">Detail</a>"
 msgstr ""
 "Nếu không có, RDS sẽ ở chế độ dùng thử, thời gian thử nghiệm là 120 ngày. <a "
 "href='https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-"
-"services/rds-client-access-license'>Chi tiết</a>"
+"services/rds-client-access-license' target='_blank'>Chi tiết</a>"
 
 #: terminal/serializers/applet_host.py:55
 msgid "RDS License Server"

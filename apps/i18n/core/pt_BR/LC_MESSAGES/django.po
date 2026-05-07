@@ -10192,11 +10192,11 @@ msgstr "Já existem licenças RDS"
 msgid ""
 "If not exist, the RDS will be in trial mode, and the trial period is 120 "
 "days. <a href=\"https://learn.microsoft.com/en-us/windows-server/remote/"
-"remote-desktop-services/rds-client-access-license\">Detail</a>"
+"remote-desktop-services/rds-client-access-license\" target=\"_blank\">Detail</a>"
 msgstr ""
 "Se não existir, o RDS estará em modo de teste, com um período de teste de "
 "120 dias. <a href='https://learn.microsoft.com/en-us/windows-server/remote/"
-"remote-desktop-services/rds-client-access-license'>Detalhes</a>"
+"remote-desktop-services/rds-client-access-license' target='_blank'>Detalhes</a>"
 
 #: terminal/serializers/applet_host.py:55
 msgid "RDS License Server"

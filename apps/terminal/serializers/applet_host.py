@@ -49,7 +49,7 @@ class DeployOptionsSerializer(serializers.Serializer):
         help_text=_(
             'If not exist, the RDS will be in trial mode, and the trial period is 120 days. <a '
             'href="https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-client-access'
-            '-license">Detail</a>'
+            '-license" target="_blank">Detail</a>'
         )
     )
     RDS_LicenseServer = serializers.CharField(default='127.0.0.1', label=_('RDS License Server'), max_length=1024)
