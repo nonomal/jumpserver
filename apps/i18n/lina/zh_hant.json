@@ -9,7 +9,7 @@
     "AccessIP": "IP 白名單",
     "AccessKey": "訪問金鑰",
     "AccessToken": "訪問令牌",
-    "AccessTokenTip": "訪問令牌是透過 JumpServer 客戶端使用 OAuth2（授權碼授權）流程生成的臨時憑證，用於訪問受保護的資源。",
+    "AccessTokenTip": "訪問令牌是透過客戶端使用 OAuth2（授權碼授權）流程生成的臨時憑證，用於訪問受保護的資源。",
     "Account": "雲帳號",
     "AccountActivities": "帳號活動",
     "AccountAmount": "帳號數量",
