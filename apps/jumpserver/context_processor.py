@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 import datetime
-
+import os
 from django.conf import settings
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
@@ -17,6 +17,7 @@ default_interface = dict((
     ('theme', 'classic_green'),
     ('theme_info', {}),
     ('footer_content', ''),
+    ('version', os.environ.get("CURRENT_VERSION", ""))
 ))
 
 current_year = datetime.datetime.now().year
