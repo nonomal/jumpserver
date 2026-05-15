@@ -17,7 +17,6 @@ default_interface = dict((
     ('theme', 'classic_green'),
     ('theme_info', {}),
     ('footer_content', ''),
-    ('version', 'V5.0'),
 ))
 
 current_year = datetime.datetime.now().year
