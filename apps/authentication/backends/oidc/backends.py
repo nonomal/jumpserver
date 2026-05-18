@@ -65,14 +65,14 @@ class UserMixin:
         return user, created
 
 
-class OIDCBaseBackend(UserMixin, ModelBackend):
+class OIDCBaseBackendMixin(UserMixin):
 
     @staticmethod
     def is_enabled():
         return settings.AUTH_OPENID
 
 
-class OIDCAuthCodeBackend(RedirectAuthBackend, OIDCBaseBackend):
+class OIDCAuthCodeBackend(OIDCBaseBackendMixin, RedirectAuthBackend, ModelBackend):
     """ Allows to authenticate users using an OpenID Connect Provider (OP).
 
     This authentication backend is able to authenticate users in the case of the OpenID Connect
@@ -221,7 +221,7 @@ class OIDCAuthCodeBackend(RedirectAuthBackend, OIDCBaseBackend):
             return None
 
 
-class OIDCAuthPasswordBackend(JMSBaseAuthBackend, OIDCBaseBackend):
+class OIDCAuthPasswordBackend(OIDCBaseBackendMixin, JMSBaseAuthBackend, ModelBackend):
 
     @ssl_verification
     def authenticate(self, request, username=None, password=None):
