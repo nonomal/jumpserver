@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-25 14:02+0800\n"
+"POT-Creation-Date: 2026-05-26 16:01+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3472,7 +3472,7 @@ msgid "Connect"
 msgstr ""
 
 #: audits/const.py:31
-#: authentication/templates/authentication/cert_login.html:232
+#: authentication/templates/authentication/cert_login.html:236
 #: authentication/templates/authentication/login.html:334
 #: authentication/templates/authentication/login.html:408
 #: templates/_header_bar.html:101
@@ -4230,7 +4230,7 @@ msgstr ""
 msgid "Certificate signing failed"
 msgstr ""
 
-#: authentication/backends/cert/views.py:97
+#: authentication/backends/cert/views.py:94
 msgid "Invalid credentials"
 msgstr ""
 
@@ -4955,7 +4955,7 @@ msgstr ""
 #: authentication/templates/authentication/_msg_oauth_bind.html:3
 #: authentication/templates/authentication/_msg_reset_password.html:3
 #: authentication/templates/authentication/_msg_reset_password_code.html:9
-#: jumpserver/conf.py:558
+#: jumpserver/conf.py:562
 #: perms/templates/perms/_msg_item_permissions_expire.html:3
 #: tickets/templates/tickets/approve_check_password.html:32
 #: users/templates/users/_msg_account_expire_reminder.html:4
@@ -5051,70 +5051,71 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:190
+#: authentication/templates/authentication/cert_login.html:194
 #, fuzzy
 #| msgid "App Authentication"
 msgid "Certificate Authentication"
 msgstr "Authentication"
 
-#: authentication/templates/authentication/cert_login.html:195
-#: authentication/templates/authentication/cert_login.html:250
+#: authentication/templates/authentication/cert_login.html:199
+#: authentication/templates/authentication/cert_login.html:254
 msgid "Loading USB Key driver..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:210
+#: authentication/templates/authentication/cert_login.html:214
 msgid "Insert USB Key to auto-fetch"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:238
-msgid "Other login methods"
-msgstr ""
-
-#: authentication/templates/authentication/cert_login.html:251
-msgid "Detecting USB Key..."
-msgstr ""
-
-#: authentication/templates/authentication/cert_login.html:252
-msgid "USB Key connected"
-msgstr ""
-
-#: authentication/templates/authentication/cert_login.html:253
-msgid "Please insert USB Key"
-msgstr ""
-
-#: authentication/templates/authentication/cert_login.html:254
-msgid "Driver unavailable"
+#: authentication/templates/authentication/cert_login.html:242
+#: xpack/plugins/interface/templates/login_i18n.html:22
+msgid "More login methods"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:255
-msgid "USB Key SDK initialization failed"
+msgid "Detecting USB Key..."
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:256
-msgid "Verifying PIN..."
+msgid "USB Key connected"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:257
-msgid "PIN verified"
+msgid "Please insert USB Key"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:258
-msgid "PIN verification failed"
+msgid "Driver unavailable"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:259
-msgid "Signing challenge code..."
+msgid "USB Key SDK initialization failed"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:260
-msgid "Signing failed"
+msgid "Verifying PIN..."
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:261
-msgid "Failed to retrieve certificate"
+msgid "PIN verified"
 msgstr ""
 
 #: authentication/templates/authentication/cert_login.html:262
+msgid "PIN verification failed"
+msgstr ""
+
+#: authentication/templates/authentication/cert_login.html:263
+msgid "Signing challenge code..."
+msgstr ""
+
+#: authentication/templates/authentication/cert_login.html:264
+msgid "Signing failed"
+msgstr ""
+
+#: authentication/templates/authentication/cert_login.html:265
+msgid "Failed to retrieve certificate"
+msgstr ""
+
+#: authentication/templates/authentication/cert_login.html:266
 msgid "No certificate detected, please contact administrator"
 msgstr ""
 
@@ -5866,16 +5867,16 @@ msgstr ""
 msgid "The message code provided is invalid or has expired"
 msgstr ""
 
-#: jumpserver/conf.py:552
+#: jumpserver/conf.py:556
 #, python-brace-format
 msgid "The verification code is: {code}"
 msgstr ""
 
-#: jumpserver/conf.py:557
+#: jumpserver/conf.py:561
 msgid "Create account successfully"
 msgstr ""
 
-#: jumpserver/conf.py:559
+#: jumpserver/conf.py:563
 msgid "Your account has been created successfully"
 msgstr ""
 
@@ -6568,7 +6569,7 @@ msgstr ""
 
 #: orgs/mixins/models.py:58 orgs/mixins/serializers.py:25 orgs/models.py:91
 #: rbac/const.py:7 rbac/models/rolebinding.py:57
-#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:53
+#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:54
 #: terminal/notifications.py:309
 #: terminal/templates/terminal/_msg_command_warning.html:27
 #: terminal/templates/terminal/_msg_session_sharing.html:14
@@ -7328,11 +7329,17 @@ msgstr ""
 msgid "Passkey Auth"
 msgstr ""
 
-#: settings/serializers/auth/base.py:28
+#: settings/serializers/auth/base.py:27
+#, fuzzy
+#| msgid "App Authentication"
+msgid "Certificate Auth"
+msgstr "Authentication"
+
+#: settings/serializers/auth/base.py:29
 msgid "Email suffix"
 msgstr ""
 
-#: settings/serializers/auth/base.py:30
+#: settings/serializers/auth/base.py:31
 msgid ""
 "After third-party user authentication is successful, if the third-party "
 "authentication service platform does not return the user's email "
@@ -7340,26 +7347,26 @@ msgid ""
 "suffix"
 msgstr ""
 
-#: settings/serializers/auth/base.py:37
+#: settings/serializers/auth/base.py:38
 msgid "Forgot Password URL"
 msgstr ""
 
-#: settings/serializers/auth/base.py:38
+#: settings/serializers/auth/base.py:39
 msgid "The URL for Forgotten Password on the user login page"
 msgstr ""
 
-#: settings/serializers/auth/base.py:41
+#: settings/serializers/auth/base.py:42
 msgid "Login redirection"
 msgstr ""
 
-#: settings/serializers/auth/base.py:43
+#: settings/serializers/auth/base.py:44
 msgid ""
 "Should an flash page be displayed before the user is redirected to third-"
 "party authentication when the administrator enables third-party redirect "
 "authentication"
 msgstr ""
 
-#: settings/serializers/auth/base.py:55
+#: settings/serializers/auth/base.py:56
 msgid ""
 "When you create a user, you associate the user to the organization of your "
 "choice. Users always belong to the Default organization."
@@ -7408,6 +7415,43 @@ msgstr ""
 msgid ""
 "User attribute mapping, where the `key` is the CAS service user attribute "
 "name and the `value` is this system user attribute name"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:9 settings/serializers/auth/cert.py:12
+#: users/models/user/_source.py:27
+msgid "Certificate"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:15
+msgid "Enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:16
+msgid "Whether to enable user certificate enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:19
+msgid "Enrollment Validity Days"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:20
+msgid "Validity period (days) for issued certificates"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:23
+msgid "Challenge TTL (seconds)"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:24
+msgid "Time-to-live (seconds) for authentication challenge codes"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:27
+msgid "USB-Key Default PIN"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:28
+msgid "Default USB Key PIN used for administrator reset"
 msgstr ""
 
 #: settings/serializers/auth/dingtalk.py:16
@@ -10745,10 +10789,6 @@ msgstr ""
 msgid "Force enabled"
 msgstr ""
 
-#: users/models/user/_source.py:27
-msgid "Certificate"
-msgstr ""
-
 #: users/notifications.py:23 users/notifications.py:68
 msgid "Reset password url"
 msgstr ""
@@ -12237,10 +12277,6 @@ msgstr ""
 
 #: xpack/plugins/interface/templates/login_i18n.html:17
 msgid "Privacy Policy"
-msgstr ""
-
-#: xpack/plugins/interface/templates/login_i18n.html:22
-msgid "More login methods"
 msgstr ""
 
 #: xpack/plugins/jdmc/i18n.py:4

@@ -3,7 +3,7 @@
 import secrets
 
 from django.conf import settings
-from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
@@ -12,17 +12,14 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic.edit import FormView
 from django.shortcuts import redirect
-from django.http.response import HttpResponseRedirect
 
-from common.utils import reverse, safe_next_url
-from users.utils import redirect_user_first_login_or_index
 from authentication.mixins import AuthMixin 
-from authentication.errors import ACLError
 from authentication.errors import (
-    AuthFailedError, LoginConfirmBaseError, NeedRedirectError
+    AuthFailedError, NeedRedirectError
 )
 from .forms import CertLoginForm
 from users.utils import LoginBlockUtil, LoginIpBlockUtil
+from .driver import cert_vd_cfg
 
 
 __all__ = ['CertLoginView']
@@ -52,7 +49,7 @@ class CertLoginView(AuthMixin, FormView):
 
     def _generate_and_store_challenge(self):
         challenge = secrets.token_hex(16)
-        ttl = getattr(settings, 'AUTH_CERT_CHALLENGE_TTL', 300)
+        ttl = cert_vd_cfg.challenge_ttl
         cache.set(self._challenge_cache_key(), challenge, ttl)
         return challenge
 

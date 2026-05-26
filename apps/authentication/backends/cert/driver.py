@@ -15,36 +15,13 @@ class Setting:
 
 @Singleton
 class CertVendorDriverConfig:
-    """
-    从 YAML 配置文件读取所有证书相关配置。
-
-    CA 相关路径/密码（ca_cert_file / ca_key_file / ca_key_pass）属于系统敏感配置，
-    只能在系统设置（config.yml / Django settings）中配置，不允许写入此 YAML。
-
-    YAML 结构约定：
-      cert:                           # 系统级配置段
-        gmssl_bin:    gmssl           # gmssl 二进制路径
-        challenge_ttl: 300            # Challenge 码 Redis 存活秒数
-        enroll:
-          enabled:    true            # 是否开启证书签发
-          key_algo:   SM2             # 签发密钥算法：SM2 或 RSA
-          subject_cn: username              # 用户证书 Subject CN 取自用户的哪个字段
-          subject_o:  JumpServer      # 用户证书 Subject O（组织名）
-      # 其余 key 为厂商 SDK 方法映射（供前端 API 层使用）
-      newUKeyAPI: ...
-      checkInstall: ...
-      getCertCN: ...
-      ...
-    """
 
     def __init__(self):
         if not settings.AUTH_CERT:
-            logger.debug('CertVendorDriverConfig: authentication backend not enabled, skipping config load')
+            logger.debug('CertVendorDriverConfig: authentication backend not enabled')
             return
         config_file = getattr(settings, 'AUTH_CERT_VENDOR_DRIVER_CONFIG_FILE', None)
         self._raw = self._load_yaml(config_file)
-        self._cert = self._raw.get('cert') or {}
-        self._enroll = self._cert.get('enroll') or {}
 
     # ── YAML 加载 ────────────────────────────────────────────────────────────
 
@@ -90,7 +67,7 @@ class CertVendorDriverConfig:
     @property
     def challenge_ttl(self):
         """Challenge 码在 Redis 中的存活时间（秒），默认 300。"""
-        v = self._cert.get('challenge_ttl', 300)
+        v = getattr(settings, 'AUTH_CERT_CHALLENGE_TTL', 300)
         return int(v)
 
     # ── 证书签发 ──────────────────────────────────────────────────────────────
@@ -98,29 +75,20 @@ class CertVendorDriverConfig:
     @property
     def enroll_enabled(self):
         """是否开启用户证书签发功能。"""
-        v = self._enroll.get('enabled', True)
+        v = getattr(settings, 'AUTH_CERT_ENROLL_ENABLED', False)
         return bool(v)
 
     @property
-    def enroll_key_algo(self):
-        """签发证书时生成密钥对的算法，SM2 或 RSA。"""
-        return self._enroll.get('key_algo', 'SM2')
-
-    @property
-    def enroll_subject_cn(self):
-        """用户证书 Subject CN 取自用户模型的哪个字段，默认 'username'。"""
-        return self._enroll.get('subject_cn', 'username')
-
-    @property
-    def enroll_subject_o(self):
-        """用户证书 Subject O（组织名）。"""
-        return self._enroll.get('subject_o', Setting.VENDOR)
-    
-    @property
     def enroll_validity_days(self):
         """签发证书的有效期（天），默认 365。"""
-        v = self._enroll.get('validity_days', 365)
+        v = getattr(settings, 'AUTH_CERT_ENROLL_VALIDITY_DAYS', 365)
         return int(v)
+    
+    @property
+    def default_pin(self):
+        """证书默认 PIN 码，默认为空字符串（不设置 PIN）。"""
+        v = getattr(settings, 'AUTH_CERT_DEFAULT_PIN', '')
+        return str(v)
 
     # ── 厂商 SDK 映射（原始数据，供 API 层序列化给前端）───────────────────────
         
@@ -176,7 +144,25 @@ class CertVendorDriverConfig:
         lang = Language.to_internal_code(lang)
         trans_filter = self._build_trans_filter(lang)
         data = self._render(self._raw, trans_filter)
-        return {k: v for k, v in data.items() if k not in ('i18n',)}
+        data = self._apply_cert_config_to_data(data)
+        data = {k: v for k, v in data.items() if k not in ('i18n',)}
+        return data
+    
+    def _apply_cert_config_to_data(self, data):
+        """将 'cert' 配置段渲染后添加到 data['cert']，供前端 API 层使用。"""
+        cert = {
+            'challenge_ttl': self.challenge_ttl,
+            'enroll': {
+                'enabled': self.enroll_enabled,
+                'validity_days': self.enroll_validity_days,
+            },
+            'pin': {
+                'default': self.default_pin
+            }
+
+        }
+        data['cert'] = cert
+        return data
 
 
 cert_vd_cfg = CertVendorDriverConfig()

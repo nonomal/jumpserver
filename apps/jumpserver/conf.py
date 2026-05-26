@@ -271,6 +271,10 @@ class Config(dict):
 
         'AUTH_CERT': False,
         'CA_KEY_PASS': '',
+        'AUTH_CERT_ENROLL_ENABLED': False,
+        'AUTH_CERT_ENROLL_VALIDITY_DAYS': 365,
+        'AUTH_CERT_CHALLENGE_TTL': 300,
+        'AUTH_CERT_DEFAULT_PIN': '',
 
         # 临时密码
         'AUTH_TEMP_TOKEN': False,

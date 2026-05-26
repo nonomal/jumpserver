@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-25 14:02+0800\n"
+"POT-Creation-Date: 2026-05-26 16:01+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3622,7 +3622,7 @@ msgid "Connect"
 msgstr "接続"
 
 #: audits/const.py:31
-#: authentication/templates/authentication/cert_login.html:232
+#: authentication/templates/authentication/cert_login.html:236
 #: authentication/templates/authentication/login.html:334
 #: authentication/templates/authentication/login.html:408
 #: templates/_header_bar.html:101
@@ -4476,7 +4476,7 @@ msgstr "タイプ このフィールドは必須です."
 msgid "Certificate signing failed"
 msgstr "認証に失敗しました"
 
-#: authentication/backends/cert/views.py:97
+#: authentication/backends/cert/views.py:94
 #, fuzzy
 #| msgid "Invalid data"
 msgid "Invalid credentials"
@@ -5230,7 +5230,7 @@ msgstr "コードエラー"
 #: authentication/templates/authentication/_msg_oauth_bind.html:3
 #: authentication/templates/authentication/_msg_reset_password.html:3
 #: authentication/templates/authentication/_msg_reset_password_code.html:9
-#: jumpserver/conf.py:558
+#: jumpserver/conf.py:562
 #: perms/templates/perms/_msg_item_permissions_expire.html:3
 #: tickets/templates/tickets/approve_check_password.html:32
 #: users/templates/users/_msg_account_expire_reminder.html:4
@@ -5334,82 +5334,83 @@ msgstr ""
 msgid "Cancel"
 msgstr "キャンセル"
 
-#: authentication/templates/authentication/cert_login.html:190
+#: authentication/templates/authentication/cert_login.html:194
 #, fuzzy
 #| msgid "Multi-Factor Authentication"
 msgid "Certificate Authentication"
 msgstr "認証"
 
-#: authentication/templates/authentication/cert_login.html:195
-#: authentication/templates/authentication/cert_login.html:250
+#: authentication/templates/authentication/cert_login.html:199
+#: authentication/templates/authentication/cert_login.html:254
 msgid "Loading USB Key driver..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:210
+#: authentication/templates/authentication/cert_login.html:214
 msgid "Insert USB Key to auto-fetch"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:238
+#: authentication/templates/authentication/cert_login.html:242
+#: xpack/plugins/interface/templates/login_i18n.html:22
 #, fuzzy
 #| msgid "More login options"
-msgid "Other login methods"
+msgid "More login methods"
 msgstr "その他のログインオプション"
 
-#: authentication/templates/authentication/cert_login.html:251
+#: authentication/templates/authentication/cert_login.html:255
 msgid "Detecting USB Key..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:252
+#: authentication/templates/authentication/cert_login.html:256
 msgid "USB Key connected"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:253
+#: authentication/templates/authentication/cert_login.html:257
 #, fuzzy
 #| msgid "Please enter SMS code"
 msgid "Please insert USB Key"
 msgstr "SMSコードを入力してください"
 
-#: authentication/templates/authentication/cert_login.html:254
+#: authentication/templates/authentication/cert_login.html:258
 #, fuzzy
 #| msgid "Account unavailable"
 msgid "Driver unavailable"
 msgstr "利用できないアカウント"
 
-#: authentication/templates/authentication/cert_login.html:255
+#: authentication/templates/authentication/cert_login.html:259
 msgid "USB Key SDK initialization failed"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:256
+#: authentication/templates/authentication/cert_login.html:260
 msgid "Verifying PIN..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:257
+#: authentication/templates/authentication/cert_login.html:261
 #, fuzzy
 #| msgid "Date verified"
 msgid "PIN verified"
 msgstr "確認済みの日付"
 
-#: authentication/templates/authentication/cert_login.html:258
+#: authentication/templates/authentication/cert_login.html:262
 #, fuzzy
 #| msgid "OTP verification code"
 msgid "PIN verification failed"
 msgstr "OTP検証コード"
 
-#: authentication/templates/authentication/cert_login.html:259
+#: authentication/templates/authentication/cert_login.html:263
 msgid "Signing challenge code..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:260
+#: authentication/templates/authentication/cert_login.html:264
 #, fuzzy
 #| msgid "Signing key"
 msgid "Signing failed"
 msgstr "プロバイダ署名キー"
 
-#: authentication/templates/authentication/cert_login.html:261
+#: authentication/templates/authentication/cert_login.html:265
 msgid "Failed to retrieve certificate"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:262
+#: authentication/templates/authentication/cert_login.html:266
 #, fuzzy
 #| msgid "Your account has expired, please contact the administrator."
 msgid "No certificate detected, please contact administrator"
@@ -6209,16 +6210,16 @@ msgstr "コードが見つかりません"
 msgid "The message code provided is invalid or has expired"
 msgstr "提供されたメッセージコードは無効か期限切れです"
 
-#: jumpserver/conf.py:552
+#: jumpserver/conf.py:556
 #, python-brace-format
 msgid "The verification code is: {code}"
 msgstr "認証コードは: {code}"
 
-#: jumpserver/conf.py:557
+#: jumpserver/conf.py:561
 msgid "Create account successfully"
 msgstr "アカウントを正常に作成"
 
-#: jumpserver/conf.py:559
+#: jumpserver/conf.py:563
 msgid "Your account has been created successfully"
 msgstr "アカウントが正常に作成されました"
 
@@ -6949,7 +6950,7 @@ msgstr "組織を選択してから保存してください"
 
 #: orgs/mixins/models.py:58 orgs/mixins/serializers.py:25 orgs/models.py:91
 #: rbac/const.py:7 rbac/models/rolebinding.py:57
-#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:53
+#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:54
 #: terminal/notifications.py:309
 #: terminal/templates/terminal/_msg_command_warning.html:27
 #: terminal/templates/terminal/_msg_session_sharing.html:14
@@ -7750,11 +7751,17 @@ msgstr "SSO Token 認証"
 msgid "Passkey Auth"
 msgstr "Passkey 認証"
 
-#: settings/serializers/auth/base.py:28
+#: settings/serializers/auth/base.py:27
+#, fuzzy
+#| msgid "Authenticate"
+msgid "Certificate Auth"
+msgstr "認証"
+
+#: settings/serializers/auth/base.py:29
 msgid "Email suffix"
 msgstr "メールのサフィックス"
 
-#: settings/serializers/auth/base.py:30
+#: settings/serializers/auth/base.py:31
 msgid ""
 "After third-party user authentication is successful, if the third-party "
 "authentication service platform does not return the user's email "
@@ -7765,19 +7772,19 @@ msgstr ""
 "ザーのメール情報を返さなかった場合、システムは自動的にこのメールのサフィック"
 "スでユーザーを作成します"
 
-#: settings/serializers/auth/base.py:37
+#: settings/serializers/auth/base.py:38
 msgid "Forgot Password URL"
 msgstr "パスワードを忘れた場合のリンク"
 
-#: settings/serializers/auth/base.py:38
+#: settings/serializers/auth/base.py:39
 msgid "The URL for Forgotten Password on the user login page"
 msgstr "ユーザーログイン画面のパスワードを忘れた URL"
 
-#: settings/serializers/auth/base.py:41
+#: settings/serializers/auth/base.py:42
 msgid "Login redirection"
 msgstr "ログインリダイレクトの有効化msg"
 
-#: settings/serializers/auth/base.py:43
+#: settings/serializers/auth/base.py:44
 msgid ""
 "Should an flash page be displayed before the user is redirected to third-"
 "party authentication when the administrator enables third-party redirect "
@@ -7786,7 +7793,7 @@ msgstr ""
 "管理者が第三者へのリダイレクトの認証を有効にした場合、ユーザーが第三者の認証"
 "にリダイレクトされる前に Flash ページを表示するかどうか"
 
-#: settings/serializers/auth/base.py:55
+#: settings/serializers/auth/base.py:56
 msgid ""
 "When you create a user, you associate the user to the organization of your "
 "choice. Users always belong to the Default organization."
@@ -7840,6 +7847,47 @@ msgid ""
 msgstr ""
 "ユーザー属性のマッピング、ここで `key` は CAS サービスのユーザー属性名で、"
 "`value` はこのシステムのユーザー属性名です"
+
+#: settings/serializers/auth/cert.py:9 settings/serializers/auth/cert.py:12
+#: users/models/user/_source.py:27
+#, fuzzy
+#| msgid "Authenticate"
+msgid "Certificate"
+msgstr "認証"
+
+#: settings/serializers/auth/cert.py:15
+msgid "Enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:16
+msgid "Whether to enable user certificate enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:19
+msgid "Enrollment Validity Days"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:20
+msgid "Validity period (days) for issued certificates"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:23
+#, fuzzy
+#| msgid "Verify code TTL (second)"
+msgid "Challenge TTL (seconds)"
+msgstr "認証コード有効時間"
+
+#: settings/serializers/auth/cert.py:24
+msgid "Time-to-live (seconds) for authentication challenge codes"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:27
+msgid "USB-Key Default PIN"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:28
+msgid "Default USB Key PIN used for administrator reset"
+msgstr ""
 
 #: settings/serializers/auth/dingtalk.py:16
 msgid "Dingtalk"
@@ -11426,12 +11474,6 @@ msgstr "ユーザーパスワード履歴"
 msgid "Force enabled"
 msgstr "強制有効"
 
-#: users/models/user/_source.py:27
-#, fuzzy
-#| msgid "Authenticate"
-msgid "Certificate"
-msgstr "認証"
-
 #: users/notifications.py:23 users/notifications.py:68
 msgid "Reset password url"
 msgstr "パスワードリセットのURL"
@@ -12991,12 +13033,6 @@ msgstr "ユーザーエージェント"
 msgid "Privacy Policy"
 msgstr ""
 
-#: xpack/plugins/interface/templates/login_i18n.html:22
-#, fuzzy
-#| msgid "More login options"
-msgid "More login methods"
-msgstr "その他のログインオプション"
-
 #: xpack/plugins/jdmc/i18n.py:4
 #, fuzzy
 #| msgid "Audit view"
@@ -13020,6 +13056,11 @@ msgstr "ライセンスのインポートに成功"
 #: xpack/plugins/license/api.py:55
 msgid "Invalid license"
 msgstr "ライセンスが無効です"
+
+#, fuzzy
+#~| msgid "More login options"
+#~ msgid "Other login methods"
+#~ msgstr "その他のログインオプション"
 
 #~ msgid "User invalid, disabled or expired"
 #~ msgstr "ユーザーが無効、無効、または期限切れです"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: JumpServer 0.3.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-25 14:02+0800\n"
+"POT-Creation-Date: 2026-05-26 16:05+0800\n"
 "PO-Revision-Date: 2021-05-20 10:54+0800\n"
 "Last-Translator: ibuler <ibuler@qq.com>\n"
 "Language-Team: JumpServer team<ibuler@qq.com>\n"
@@ -3543,7 +3543,7 @@ msgid "Connect"
 msgstr "連接"
 
 #: audits/const.py:31
-#: authentication/templates/authentication/cert_login.html:232
+#: authentication/templates/authentication/cert_login.html:236
 #: authentication/templates/authentication/login.html:334
 #: authentication/templates/authentication/login.html:408
 #: templates/_header_bar.html:101
@@ -4383,7 +4383,7 @@ msgstr "CSR 為必填項。"
 msgid "Certificate signing failed"
 msgstr "憑證簽發失敗"
 
-#: authentication/backends/cert/views.py:97
+#: authentication/backends/cert/views.py:94
 msgid "Invalid credentials"
 msgstr "無效的憑證"
 
@@ -5113,7 +5113,7 @@ msgstr "代碼錯誤"
 #: authentication/templates/authentication/_msg_oauth_bind.html:3
 #: authentication/templates/authentication/_msg_reset_password.html:3
 #: authentication/templates/authentication/_msg_reset_password_code.html:9
-#: jumpserver/conf.py:558
+#: jumpserver/conf.py:562
 #: perms/templates/perms/_msg_item_permissions_expire.html:3
 #: tickets/templates/tickets/approve_check_password.html:32
 #: users/templates/users/_msg_account_expire_reminder.html:4
@@ -5209,64 +5209,69 @@ msgstr "如果這次公鑰更新不是由你發起的，那麼你的帳號可能
 msgid "Cancel"
 msgstr "取消"
 
-#: authentication/templates/authentication/cert_login.html:190
+#: authentication/templates/authentication/cert_login.html:194
 msgid "Certificate Authentication"
 msgstr "憑證認證"
 
-#: authentication/templates/authentication/cert_login.html:195
-#: authentication/templates/authentication/cert_login.html:250
+#: authentication/templates/authentication/cert_login.html:199
+#: authentication/templates/authentication/cert_login.html:254
 msgid "Loading USB Key driver..."
 msgstr "正在載入 USB Key 驅動程式..."
 
-#: authentication/templates/authentication/cert_login.html:210
+#: authentication/templates/authentication/cert_login.html:214
 msgid "Insert USB Key to auto-fetch"
 msgstr "請插入 USB Key 自動取得"
 
-#: authentication/templates/authentication/cert_login.html:251
+#: authentication/templates/authentication/cert_login.html:242
+#: xpack/plugins/interface/templates/login_i18n.html:22
+msgid "More login methods"
+msgstr "其他方式登錄"
+
+#: authentication/templates/authentication/cert_login.html:255
 msgid "Detecting USB Key..."
 msgstr "正在偵測 USB Key..."
 
-#: authentication/templates/authentication/cert_login.html:252
+#: authentication/templates/authentication/cert_login.html:256
 msgid "USB Key connected"
 msgstr "USB Key 已連接"
 
-#: authentication/templates/authentication/cert_login.html:253
+#: authentication/templates/authentication/cert_login.html:257
 msgid "Please insert USB Key"
 msgstr "請插入 USB Key"
 
-#: authentication/templates/authentication/cert_login.html:254
+#: authentication/templates/authentication/cert_login.html:258
 msgid "Driver unavailable"
 msgstr "驅動程式不可用"
 
-#: authentication/templates/authentication/cert_login.html:255
+#: authentication/templates/authentication/cert_login.html:259
 msgid "USB Key SDK initialization failed"
 msgstr "USB Key SDK 初始化失敗"
 
-#: authentication/templates/authentication/cert_login.html:256
+#: authentication/templates/authentication/cert_login.html:260
 msgid "Verifying PIN..."
 msgstr "PIN 驗證中..."
 
-#: authentication/templates/authentication/cert_login.html:257
+#: authentication/templates/authentication/cert_login.html:261
 msgid "PIN verified"
 msgstr "PIN 驗證通過"
 
-#: authentication/templates/authentication/cert_login.html:258
+#: authentication/templates/authentication/cert_login.html:262
 msgid "PIN verification failed"
 msgstr "驗證 PIN 失敗"
 
-#: authentication/templates/authentication/cert_login.html:259
+#: authentication/templates/authentication/cert_login.html:263
 msgid "Signing challenge code..."
 msgstr "正在對挑戰碼簽名..."
 
-#: authentication/templates/authentication/cert_login.html:260
+#: authentication/templates/authentication/cert_login.html:264
 msgid "Signing failed"
 msgstr "簽名失敗"
 
-#: authentication/templates/authentication/cert_login.html:261
+#: authentication/templates/authentication/cert_login.html:265
 msgid "Failed to retrieve certificate"
 msgstr "取得憑證失敗"
 
-#: authentication/templates/authentication/cert_login.html:262
+#: authentication/templates/authentication/cert_login.html:266
 msgid "No certificate detected, please contact administrator"
 msgstr "未偵測到憑證，請聯繫管理員製證"
 
@@ -6044,16 +6049,16 @@ msgstr "未找到 Code"
 msgid "The message code provided is invalid or has expired"
 msgstr "提供的消息代碼無效或已過期"
 
-#: jumpserver/conf.py:552
+#: jumpserver/conf.py:556
 #, python-brace-format
 msgid "The verification code is: {code}"
 msgstr "驗證碼為: {code}"
 
-#: jumpserver/conf.py:557
+#: jumpserver/conf.py:561
 msgid "Create account successfully"
 msgstr "創建帳號成功"
 
-#: jumpserver/conf.py:559
+#: jumpserver/conf.py:563
 msgid "Your account has been created successfully"
 msgstr "你的帳號已創建成功"
 
@@ -6763,7 +6768,7 @@ msgstr "請選擇一個組織後再保存"
 
 #: orgs/mixins/models.py:58 orgs/mixins/serializers.py:25 orgs/models.py:91
 #: rbac/const.py:7 rbac/models/rolebinding.py:57
-#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:53
+#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:54
 #: terminal/notifications.py:309
 #: terminal/templates/terminal/_msg_command_warning.html:27
 #: terminal/templates/terminal/_msg_session_sharing.html:14
@@ -7560,11 +7565,17 @@ msgstr "SSO 令牌認證"
 msgid "Passkey Auth"
 msgstr "Passkey 認證"
 
-#: settings/serializers/auth/base.py:28
+#: settings/serializers/auth/base.py:27
+#, fuzzy
+#| msgid "Certificate"
+msgid "Certificate Auth"
+msgstr "憑證"
+
+#: settings/serializers/auth/base.py:29
 msgid "Email suffix"
 msgstr "郵件後綴"
 
-#: settings/serializers/auth/base.py:30
+#: settings/serializers/auth/base.py:31
 msgid ""
 "After third-party user authentication is successful, if the third-party "
 "authentication service platform does not return the user's email "
@@ -7574,19 +7585,19 @@ msgstr ""
 "第三方使用者認證成功後，若第三方認證服務平台未回傳該使用者的電子信箱資訊，系"
 "統將自動以此電子信箱後綴建立使用者"
 
-#: settings/serializers/auth/base.py:37
+#: settings/serializers/auth/base.py:38
 msgid "Forgot Password URL"
 msgstr "忘記密碼連結"
 
-#: settings/serializers/auth/base.py:38
+#: settings/serializers/auth/base.py:39
 msgid "The URL for Forgotten Password on the user login page"
 msgstr "使用者登入頁面忘記密碼的 URL"
 
-#: settings/serializers/auth/base.py:41
+#: settings/serializers/auth/base.py:42
 msgid "Login redirection"
 msgstr "啟用登入跳轉提示"
 
-#: settings/serializers/auth/base.py:43
+#: settings/serializers/auth/base.py:44
 msgid ""
 "Should an flash page be displayed before the user is redirected to third-"
 "party authentication when the administrator enables third-party redirect "
@@ -7595,7 +7606,7 @@ msgstr ""
 "Action管理員啟用第三方重新定向身份驗證時，在使用者重定向到第三方身份驗證之前"
 "是否顯示 Flash 頁面"
 
-#: settings/serializers/auth/base.py:55
+#: settings/serializers/auth/base.py:56
 msgid ""
 "When you create a user, you associate the user to the organization of your "
 "choice. Users always belong to the Default organization."
@@ -7648,6 +7659,43 @@ msgid ""
 msgstr ""
 "使用者屬性對照，其中 `key` 是 CAS 服務使用者屬性名稱，`value` 是本系統使用者"
 "使用者屬性名稱"
+
+#: settings/serializers/auth/cert.py:9 settings/serializers/auth/cert.py:12
+#: users/models/user/_source.py:27
+msgid "Certificate"
+msgstr "憑證"
+
+#: settings/serializers/auth/cert.py:15
+msgid "Enrollment"
+msgstr "憑證簽發"
+
+#: settings/serializers/auth/cert.py:16
+msgid "Whether to enable user certificate enrollment"
+msgstr "是否啟用使用者憑證簽發"
+
+#: settings/serializers/auth/cert.py:19
+msgid "Enrollment Validity Days"
+msgstr "簽發憑證有效天數"
+
+#: settings/serializers/auth/cert.py:20
+msgid "Validity period (days) for issued certificates"
+msgstr "簽發憑證的有效期（天）"
+
+#: settings/serializers/auth/cert.py:23
+msgid "Challenge TTL (seconds)"
+msgstr "挑戰碼的有效時長（秒）"
+
+#: settings/serializers/auth/cert.py:24
+msgid "Time-to-live (seconds) for authentication challenge codes"
+msgstr "認證挑戰碼的有效時長（秒）"
+
+#: settings/serializers/auth/cert.py:27
+msgid "USB-Key Default PIN"
+msgstr "USB Key 預設 PIN 碼"
+
+#: settings/serializers/auth/cert.py:28
+msgid "Default USB Key PIN used for administrator reset"
+msgstr "管理員重置時使用的預設 PIN 碼"
 
 #: settings/serializers/auth/dingtalk.py:16
 msgid "Dingtalk"
@@ -11129,10 +11177,6 @@ msgstr "用戶密碼歷史"
 msgid "Force enabled"
 msgstr "強制啟用"
 
-#: users/models/user/_source.py:27
-msgid "Certificate"
-msgstr "憑證"
-
 #: users/notifications.py:23 users/notifications.py:68
 msgid "Reset password url"
 msgstr "重置密碼網址"
@@ -12665,10 +12709,6 @@ msgstr "用戶代理"
 #: xpack/plugins/interface/templates/login_i18n.html:17
 msgid "Privacy Policy"
 msgstr ""
-
-#: xpack/plugins/interface/templates/login_i18n.html:22
-msgid "More login methods"
-msgstr "其他方式登錄"
 
 #: xpack/plugins/jdmc/i18n.py:4
 #, fuzzy

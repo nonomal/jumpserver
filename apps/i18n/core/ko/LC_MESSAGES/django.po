@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-25 14:02+0800\n"
+"POT-Creation-Date: 2026-05-26 16:01+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3584,7 +3584,7 @@ msgid "Connect"
 msgstr "연결"
 
 #: audits/const.py:31
-#: authentication/templates/authentication/cert_login.html:232
+#: authentication/templates/authentication/cert_login.html:236
 #: authentication/templates/authentication/login.html:334
 #: authentication/templates/authentication/login.html:408
 #: templates/_header_bar.html:101
@@ -4437,7 +4437,7 @@ msgstr "유형: 이 필드는 필수입니다."
 msgid "Certificate signing failed"
 msgstr "인증 실패"
 
-#: authentication/backends/cert/views.py:97
+#: authentication/backends/cert/views.py:94
 #, fuzzy
 #| msgid "Invalid data"
 msgid "Invalid credentials"
@@ -5190,7 +5190,7 @@ msgstr "코드 오류"
 #: authentication/templates/authentication/_msg_oauth_bind.html:3
 #: authentication/templates/authentication/_msg_reset_password.html:3
 #: authentication/templates/authentication/_msg_reset_password_code.html:9
-#: jumpserver/conf.py:558
+#: jumpserver/conf.py:562
 #: perms/templates/perms/_msg_item_permissions_expire.html:3
 #: tickets/templates/tickets/approve_check_password.html:32
 #: users/templates/users/_msg_account_expire_reminder.html:4
@@ -5300,82 +5300,83 @@ msgstr "취소"
 msgid "Cancel"
 msgstr "재시도"
 
-#: authentication/templates/authentication/cert_login.html:190
+#: authentication/templates/authentication/cert_login.html:194
 #, fuzzy
 #| msgid "Multi-Factor Authentication"
 msgid "Certificate Authentication"
 msgstr "인증"
 
-#: authentication/templates/authentication/cert_login.html:195
-#: authentication/templates/authentication/cert_login.html:250
+#: authentication/templates/authentication/cert_login.html:199
+#: authentication/templates/authentication/cert_login.html:254
 msgid "Loading USB Key driver..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:210
+#: authentication/templates/authentication/cert_login.html:214
 msgid "Insert USB Key to auto-fetch"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:238
+#: authentication/templates/authentication/cert_login.html:242
+#: xpack/plugins/interface/templates/login_i18n.html:22
 #, fuzzy
 #| msgid "More login options"
-msgid "Other login methods"
+msgid "More login methods"
 msgstr "기타 로그인 방법"
 
-#: authentication/templates/authentication/cert_login.html:251
+#: authentication/templates/authentication/cert_login.html:255
 msgid "Detecting USB Key..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:252
+#: authentication/templates/authentication/cert_login.html:256
 msgid "USB Key connected"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:253
+#: authentication/templates/authentication/cert_login.html:257
 #, fuzzy
 #| msgid "Please enter SMS code"
 msgid "Please insert USB Key"
 msgstr "문자 메시지 인증 코드를 입력해 주세요"
 
-#: authentication/templates/authentication/cert_login.html:254
+#: authentication/templates/authentication/cert_login.html:258
 #, fuzzy
 #| msgid "Account unavailable"
 msgid "Driver unavailable"
 msgstr "계정 무효"
 
-#: authentication/templates/authentication/cert_login.html:255
+#: authentication/templates/authentication/cert_login.html:259
 msgid "USB Key SDK initialization failed"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:256
+#: authentication/templates/authentication/cert_login.html:260
 msgid "Verifying PIN..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:257
+#: authentication/templates/authentication/cert_login.html:261
 #, fuzzy
 #| msgid "Date verified"
 msgid "PIN verified"
 msgstr "검증 날짜"
 
-#: authentication/templates/authentication/cert_login.html:258
+#: authentication/templates/authentication/cert_login.html:262
 #, fuzzy
 #| msgid "OTP verification code"
 msgid "PIN verification failed"
 msgstr "가상 MFA 인증 코드"
 
-#: authentication/templates/authentication/cert_login.html:259
+#: authentication/templates/authentication/cert_login.html:263
 msgid "Signing challenge code..."
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:260
+#: authentication/templates/authentication/cert_login.html:264
 #, fuzzy
 #| msgid "Signing key"
 msgid "Signing failed"
 msgstr "서명 키"
 
-#: authentication/templates/authentication/cert_login.html:261
+#: authentication/templates/authentication/cert_login.html:265
 msgid "Failed to retrieve certificate"
 msgstr ""
 
-#: authentication/templates/authentication/cert_login.html:262
+#: authentication/templates/authentication/cert_login.html:266
 #, fuzzy
 #| msgid "Your account has expired, please contact the administrator."
 msgid "No certificate detected, please contact administrator"
@@ -6172,16 +6173,16 @@ msgstr "제공된 메시지 코드가 유효하지 않거나 만료되었습니�
 msgid "The message code provided is invalid or has expired"
 msgstr "인증 코드는: {code}"
 
-#: jumpserver/conf.py:552
+#: jumpserver/conf.py:556
 #, python-brace-format
 msgid "The verification code is: {code}"
 msgstr "인증 코드: {code}"
 
-#: jumpserver/conf.py:557
+#: jumpserver/conf.py:561
 msgid "Create account successfully"
 msgstr "귀하의 계정이 성공적으로 생성되었습니다"
 
-#: jumpserver/conf.py:559
+#: jumpserver/conf.py:563
 msgid "Your account has been created successfully"
 msgstr "JumpServer 오픈소스 방화벽"
 
@@ -6924,7 +6925,7 @@ msgstr "저장하기 전에 조직을 선택해 주십시오"
 
 #: orgs/mixins/models.py:58 orgs/mixins/serializers.py:25 orgs/models.py:91
 #: rbac/const.py:7 rbac/models/rolebinding.py:57
-#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:53
+#: rbac/serializers/rolebinding.py:44 settings/serializers/auth/base.py:54
 #: terminal/notifications.py:309
 #: terminal/templates/terminal/_msg_command_warning.html:27
 #: terminal/templates/terminal/_msg_session_sharing.html:14
@@ -7739,11 +7740,17 @@ msgstr "SSO 토큰 인증"
 msgid "Passkey Auth"
 msgstr "패스키 인증"
 
-#: settings/serializers/auth/base.py:28
+#: settings/serializers/auth/base.py:27
+#, fuzzy
+#| msgid "Authenticate"
+msgid "Certificate Auth"
+msgstr "신원 인증"
+
+#: settings/serializers/auth/base.py:29
 msgid "Email suffix"
 msgstr "이메일 접미사"
 
-#: settings/serializers/auth/base.py:30
+#: settings/serializers/auth/base.py:31
 msgid ""
 "After third-party user authentication is successful, if the third-party "
 "authentication service platform does not return the user's email "
@@ -7754,19 +7761,19 @@ msgstr ""
 "의 이메일 정보를 반환하지 않을 경우, 시스템은 자동으로 이 이메일 접미사를 사"
 "용하여 사용자를 생성합니다."
 
-#: settings/serializers/auth/base.py:37
+#: settings/serializers/auth/base.py:38
 msgid "Forgot Password URL"
 msgstr "비밀번호를 잊으셨나요? 링크"
 
-#: settings/serializers/auth/base.py:38
+#: settings/serializers/auth/base.py:39
 msgid "The URL for Forgotten Password on the user login page"
 msgstr "사용자 로그인 페이지에서 비밀번호를 잊으셨나요? URL"
 
-#: settings/serializers/auth/base.py:41
+#: settings/serializers/auth/base.py:42
 msgid "Login redirection"
 msgstr "로그인 리디렉션 알림 활성화"
 
-#: settings/serializers/auth/base.py:43
+#: settings/serializers/auth/base.py:44
 msgid ""
 "Should an flash page be displayed before the user is redirected to third-"
 "party authentication when the administrator enables third-party redirect "
@@ -7775,7 +7782,7 @@ msgstr ""
 "관리자가 서드파티 리디렉션 인증을 활성화할 때, 사용자가 서드파티 인증으로 리"
 "디렉션되기 전에 Flash 페이지를 표시할지 여부"
 
-#: settings/serializers/auth/base.py:55
+#: settings/serializers/auth/base.py:56
 msgid ""
 "When you create a user, you associate the user to the organization of your "
 "choice. Users always belong to the Default organization."
@@ -7829,6 +7836,47 @@ msgid ""
 msgstr ""
 "사용자 속성 매핑에서 `key`는 CAS 서비스의 사용자 속성 이름이고, `value`는 이 "
 "시스템 사용자 속성 이름입니다."
+
+#: settings/serializers/auth/cert.py:9 settings/serializers/auth/cert.py:12
+#: users/models/user/_source.py:27
+#, fuzzy
+#| msgid "Authenticate"
+msgid "Certificate"
+msgstr "신원 인증"
+
+#: settings/serializers/auth/cert.py:15
+msgid "Enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:16
+msgid "Whether to enable user certificate enrollment"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:19
+msgid "Enrollment Validity Days"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:20
+msgid "Validity period (days) for issued certificates"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:23
+#, fuzzy
+#| msgid "Verify code TTL (second)"
+msgid "Challenge TTL (seconds)"
+msgstr "인증 코드 유효 시간 (분)"
+
+#: settings/serializers/auth/cert.py:24
+msgid "Time-to-live (seconds) for authentication challenge codes"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:27
+msgid "USB-Key Default PIN"
+msgstr ""
+
+#: settings/serializers/auth/cert.py:28
+msgid "Default USB Key PIN used for administrator reset"
+msgstr ""
 
 #: settings/serializers/auth/dingtalk.py:16
 msgid "Dingtalk"
@@ -11430,12 +11478,6 @@ msgstr "사용자 비밀번호 히스토리"
 msgid "Force enabled"
 msgstr "강제로 활성화"
 
-#: users/models/user/_source.py:27
-#, fuzzy
-#| msgid "Authenticate"
-msgid "Certificate"
-msgstr "신원 인증"
-
 #: users/notifications.py:23 users/notifications.py:68
 msgid "Reset password url"
 msgstr "비밀번호 재설정 웹사이트"
@@ -12999,12 +13041,6 @@ msgstr "사용자 에이전트"
 msgid "Privacy Policy"
 msgstr ""
 
-#: xpack/plugins/interface/templates/login_i18n.html:22
-#, fuzzy
-#| msgid "More login options"
-msgid "More login methods"
-msgstr "기타 로그인 방법"
-
 #: xpack/plugins/jdmc/i18n.py:4
 #, fuzzy
 #| msgid "Audit view"
@@ -13028,6 +13064,11 @@ msgstr "라이센스 가져오기 성공"
 #: xpack/plugins/license/api.py:55
 msgid "Invalid license"
 msgstr "라이센스가 유효하지 않습니다."
+
+#, fuzzy
+#~| msgid "More login options"
+#~ msgid "Other login methods"
+#~ msgstr "기타 로그인 방법"
 
 #~ msgid "User invalid, disabled or expired"
 #~ msgstr "사용자가 유효하지 않거나 비활성 상태이거나 만료되었습니다"

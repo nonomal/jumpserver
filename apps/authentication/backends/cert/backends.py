@@ -10,6 +10,7 @@ from django.conf import settings
 from users.models import User
 from common.utils import get_logger
 from ..base import JMSBaseAuthBackend
+from .driver import cert_vd_cfg
 
 
 __all__ = ['CertBackend']
@@ -99,7 +100,7 @@ class CertBackend(JMSBaseAuthBackend):
         """调用 Sm2Certificate.verify_by_ca_certificate 验证证书链。"""
         from common.utils.gmssl_python import SM2_DEFAULT_ID
 
-        ca_cert_path = getattr(settings, 'CA_CERT_FILE', '')
+        ca_cert_path = cert_vd_cfg.ca_cert_file
         if not ca_cert_path or not os.path.isfile(ca_cert_path):
             raise FileNotFoundError('CA_CERT_FILE not configured or not found')
 
@@ -210,7 +211,7 @@ class CertBackend(JMSBaseAuthBackend):
             return None
 
         # Step 2: 校验证书链，是否由 CA 根证书签发
-        ca_cert_path = getattr(settings, 'CA_CERT_FILE', '')
+        ca_cert_path = cert_vd_cfg.ca_cert_file
         if not ca_cert_path or not os.path.isfile(ca_cert_path):
             logger.warning('CertBackend: CA_CERT_FILE not configured or not found')
             return None

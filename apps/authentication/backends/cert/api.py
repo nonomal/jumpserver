@@ -182,7 +182,7 @@ class CertEnrollAPIView(APIView):
         gmssl_bin = cert_vd_cfg.gmssl_bin
         ca_key_path = cert_vd_cfg.ca_key_file
         ca_cert_path = cert_vd_cfg.ca_cert_file
-        ca_key_pass = str(cert_vd_cfg.ca_key_pass)
+        ca_key_pass = cert_vd_cfg.ca_key_pass
         if not ca_key_path or not os.path.isfile(ca_key_path):
             raise FileNotFoundError('CA_KEY_FILE not configured or not found')
         if not ca_cert_path or not os.path.isfile(ca_cert_path):
