@@ -30,7 +30,7 @@ RUN set -ex \
 RUN set -ex \
     && python3 -c "import urllib.request; urllib.request.urlretrieve('https://github.com/guanzhi/GmSSL/releases/download/v${GMSSL_VERSION}/GmSSL-${GMSSL_VERSION}-Linux.sh', '/tmp/gmssl-install.sh')" \
     && chmod +x /tmp/gmssl-install.sh \
-    && /tmp/gmssl-install.sh --prefix=/usr/local --skip-license --include-subdir \
+    && /tmp/gmssl-install.sh --prefix=/usr/local --skip-license \
     && echo "/usr/local/GmSSL-${GMSSL_VERSION}-Linux/lib" > /etc/ld.so.conf.d/gmssl.conf \
     && ldconfig \
     && rm -f /tmp/gmssl-install.sh
