@@ -67,8 +67,10 @@ class AppletHostDeploymentViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def start_deploy(instance, install_applets):
-        task = run_applet_host_deployment.apply_async((instance.id, install_applets,),
-                                                      task_id=str(instance.id))
+        run_applet_host_deployment.apply_async(
+            (instance.id, install_applets,),
+            task_id=str(instance.id)
+        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
