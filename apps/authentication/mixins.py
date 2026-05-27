@@ -731,15 +731,16 @@ class AuthMixin(CommonMixin, AuthPreCheckMixin, AuthACLMixin, AuthFaceMixin, MFA
         for k in keys:
             self.request.session.pop(k, '')
 
-    def send_auth_signal(self, success=True, user=None, username='', reason=''):
+    def send_auth_signal(self, success=True, user=None, username='', reason='', request=None):
+        request = request or self.request
         if success:
             post_auth_success.send(
-                sender=self.__class__, user=user, request=self.request
+                sender=self.__class__, user=user, request=request
             )
         else:
             post_auth_failed.send(
                 sender=self.__class__, username=username,
-                request=self.request, reason=reason
+                request=request, reason=reason
             )
 
     def redirect_to_guard_view(self):
