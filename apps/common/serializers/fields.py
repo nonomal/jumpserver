@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 
 from common.db.fields import TreeChoices, JSONManyToManyField as ModelJSONManyToManyField
-from common.utils import decrypt_password, is_uuid
+from common.utils import decrypt_session_password, is_uuid
 
 __all__ = [
     "ReadableHiddenField",
@@ -50,7 +50,7 @@ class EncryptedField(serializers.CharField):
 
     def to_internal_value(self, value):
         value = super().to_internal_value(value)
-        return decrypt_password(value)
+        return decrypt_session_password(value)
 
 
 class LabeledChoiceField(serializers.ChoiceField):

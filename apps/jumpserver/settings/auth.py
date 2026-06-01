@@ -5,6 +5,7 @@ import os
 import ldap
 
 from ..const import CONFIG, PROJECT_DIR, BASE_DIR
+from . import exist_or_default
 
 # OTP settings
 OTP_ISSUER_NAME = CONFIG.OTP_ISSUER_NAME
@@ -209,6 +210,11 @@ AUTH_SAML2_ALWAYS_UPDATE_USER = CONFIG.AUTH_SAML2_ALWAYS_UPDATE_USER
 SAML2_LOGOUT_COMPLETELY = CONFIG.SAML2_LOGOUT_COMPLETELY
 SAML2_RENAME_ATTRIBUTES = CONFIG.SAML2_RENAME_ATTRIBUTES
 SAML2_SP_ADVANCED_SETTINGS = CONFIG.SAML2_SP_ADVANCED_SETTINGS
+SAML2_SP_ADVANCED_SETTINGS["organization"]["en"].update({
+    "name": CONFIG.VENDOR,
+    "displayname": CONFIG.VENDOR,
+    "url": f"https://{CONFIG.VENDOR.lower()}.com"
+})
 SAML2_LOGIN_URL_NAME = "authentication:saml2:saml2-login"
 SAML2_LOGOUT_URL_NAME = "authentication:saml2:saml2-logout"
 
@@ -273,6 +279,7 @@ AUTH_BACKEND_OIDC_CODE = 'authentication.backends.oidc.OIDCAuthCodeBackend'
 AUTH_BACKEND_RADIUS = 'authentication.backends.radius.RadiusBackend'
 AUTH_BACKEND_CAS = 'authentication.backends.cas.CASBackend'
 AUTH_BACKEND_SSO = 'authentication.backends.sso.SSOAuthentication'
+AUTH_BACKEND_CUSTOM_SSO = 'authentication.backends.sso.CustomSSOAuthentication'
 AUTH_BACKEND_WECOM = 'authentication.backends.sso.WeComAuthentication'
 AUTH_BACKEND_DINGTALK = 'authentication.backends.sso.DingTalkAuthentication'
 AUTH_BACKEND_FEISHU = 'authentication.backends.sso.FeiShuAuthentication'
@@ -284,6 +291,7 @@ AUTH_BACKEND_OAUTH2 = 'authentication.backends.oauth2.OAuth2Backend'
 AUTH_BACKEND_TEMP_TOKEN = 'authentication.backends.token.TempTokenAuthBackend'
 AUTH_BACKEND_CUSTOM = 'authentication.backends.custom.CustomAuthBackend'
 AUTH_BACKEND_PASSKEY = 'authentication.backends.passkey.PasskeyAuthBackend'
+AUTH_BACKEND_CERT = 'authentication.backends.cert.CertBackend'
 AUTHENTICATION_BACKENDS = [
     # 只做权限校验
     RBAC_BACKEND,
@@ -295,8 +303,10 @@ AUTHENTICATION_BACKENDS = [
     # 扫码模式
     AUTH_BACKEND_WECOM, AUTH_BACKEND_DINGTALK, AUTH_BACKEND_FEISHU, AUTH_BACKEND_LARK, AUTH_BACKEND_SLACK,
     # Token模式
-    AUTH_BACKEND_AUTH_TOKEN, AUTH_BACKEND_SSO, AUTH_BACKEND_TEMP_TOKEN,
-    AUTH_BACKEND_PASSKEY
+    AUTH_BACKEND_AUTH_TOKEN, AUTH_BACKEND_SSO, AUTH_BACKEND_CUSTOM_SSO, AUTH_BACKEND_TEMP_TOKEN,
+    AUTH_BACKEND_PASSKEY,
+    # Cert模式
+    AUTH_BACKEND_CERT
 ]
 
 
@@ -360,3 +370,38 @@ ONLY_ALLOW_AUTH_FROM_SOURCE = CONFIG.ONLY_ALLOW_AUTH_FROM_SOURCE
 PRIVACY_MODE = CONFIG.PRIVACY_MODE
 
 SAML_FOLDER = os.path.join(BASE_DIR, 'authentication', 'backends', 'saml2')
+
+AUTH_CUSTOM_SSO = CONFIG.AUTH_CUSTOM_SSO
+AUTH_CUSTOM_SSO_FILE_MD5 = CONFIG.AUTH_CUSTOM_SSO_FILE_MD5
+AUTH_CUSTOM_SSO_FILE_PATH = os.path.join(PROJECT_DIR, 'data', 'auth', 'custom_sso.py')
+if AUTH_CUSTOM_SSO and AUTH_CUSTOM_SSO_FILE_MD5:
+    try:
+        md5 = AUTH_CUSTOM_SSO_FILE_MD5.split()[0]
+    except Exception:
+        md5 = AUTH_CUSTOM_SSO_FILE_MD5
+    if md5 != get_file_md5(AUTH_CUSTOM_SSO_FILE_PATH):
+        # 如果启用了自定义 SSO 认证，但文件 MD5 不匹配，则不启用自定义 SSO 认证
+        AUTH_CUSTOM_SSO = False
+AUTH_CUSTOM_SSO_QUERY_PARAMS = [q.strip() for q in CONFIG.AUTH_CUSTOM_SSO_QUERY_PARAMS.split(',')]
+
+
+# 开启证书认证
+AUTH_CERT = CONFIG.AUTH_CERT
+# 证书认证前端 SDK 文件路径
+AUTH_CERT_VENDOR_DRIVER_JS_FILE = exist_or_default(
+    os.path.join(PROJECT_DIR, 'data', 'auth', 'cert_driver.js'), None
+)
+# 抽象方法名 → 厂商 SDK 实际方法名
+AUTH_CERT_VENDOR_DRIVER_CONFIG_FILE = exist_or_default(
+    os.path.join(PROJECT_DIR, 'data', 'auth', 'cert_driver_config.yaml'), None
+)
+# CA 根证书私钥文件路径
+CA_KEY_FILE = exist_or_default(
+    os.path.join(PROJECT_DIR, 'data', 'certs', 'ca_root.key'), None
+)
+# CA 根证书文件路径，可用于认证时验证客户端证书，签发用户证书
+CA_CERT_FILE = exist_or_default(
+    os.path.join(PROJECT_DIR, 'data', 'certs', 'ca_root.crt'), None
+)
+# CA 私鑰密码（若私鑰带密码保护，不含密码则留空）
+CA_KEY_PASS = CONFIG.CA_KEY_PASS

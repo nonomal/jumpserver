@@ -10,6 +10,7 @@ import pytz
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 from django.db.utils import OperationalError
+from django.middleware.csrf import CsrfViewMiddleware
 from django.http.response import HttpResponseForbidden, JsonResponse
 from django.shortcuts import HttpResponse
 from django.shortcuts import redirect
@@ -18,6 +19,9 @@ from django.utils import timezone
 from rest_framework import status
 
 from .utils import set_current_request
+from common.utils.common import text_hmac_sha256
+
+IGNORE_CSRF_CHECK = '*' in os.getenv("DOMAINS", "").split(',')
 
 
 class TimezoneMiddleware:
@@ -191,3 +195,11 @@ class SafeRedirectMiddleware:
             host, port = netloc.split(':', 1)
             return host, port
         return netloc, '80'
+
+
+class CsrfCheckMiddleware(CsrfViewMiddleware):
+    def _origin_verified(self, request):
+        if IGNORE_CSRF_CHECK:
+            request._dont_enforce_csrf_checks = True
+            return True
+        return super()._origin_verified(request)
