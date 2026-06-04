@@ -73,14 +73,6 @@ sdk:
         scope: both
         register: ukey.devVersion 
 
-      - name: CERT_SUBJECT_CN
-        label: "{{ '证书拥有者 CN' | trans }}"
-        call: UKey_GetCertInfo
-        args: 
-          - "{{ config.certType }}"  # 证书类型参数
-          - 9
-        register: ukey.certCN
-
 #═══════════════════════════════════════════════════════════════════════════════
 # info: 展示信息字段定义（只读，不修改设备状态）
 #
@@ -94,7 +86,7 @@ sdk:
 #   user  — 仅用户可见
 #═══════════════════════════════════════════════════════════════════════════════
 info:
-  when: "{{ mode === 'admin' || (mode === 'user' && ukey.devSN === user.ukey_sn && ukey.certCN === user.username) }}"  # 仅当检测到设备时显示信息区域
+  when: "{{ mode === 'admin' || (mode === 'user' && ukey.devSN === user.ukey_sn) }}"  # 仅当检测到设备时显示信息区域
 
   # 左上「设备驱动状态」区域的动态字段（固定字段由页面内置）
   device:
@@ -248,7 +240,7 @@ info:
 #   { type: json, value: { key1: tpl, ... } }  →  '{"key1":"val1"}'
 #═══════════════════════════════════════════════════════════════════════════════
 operations:
-  when: "{{ mode === 'admin' || (mode === 'user' && ukey.devSN === user.ukey_sn && ukey.certCN === user.username) }}"  # 仅当检测到设备时显示信息区域
+  when: "{{ mode === 'admin' || (mode === 'user' && ukey.devSN === user.ukey_sn) }}"  # 仅当检测到设备时显示信息区域
   items:
     - key: bindUserUKeySN
       label: "{{ '绑定设备' | trans }}"
@@ -279,7 +271,7 @@ operations:
             ukey_sn: "{{ input.ukeySN }}"
           register: user
 
-    - key: bindUserUKeySN
+    - key: unbindUserUKeySN
       label: "{{ '解绑设备' | trans }}"
       hint: "{{ '解绑后用户将无法使用 UKey 登录' | trans }}"
       btnType: danger
