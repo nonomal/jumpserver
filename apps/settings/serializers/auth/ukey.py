@@ -18,6 +18,7 @@ class UKeySettingSerializer(serializers.Serializer):
         help_text=_('Time-to-live (seconds) for authentication challenge codes')
     )
     AUTH_UKEY_DEFAULT_PIN = EncryptedField(
+        min_length=4, max_length=32,
         default='', allow_blank=True, label=_('UKey Default User PIN'),
         help_text=_('UKey default user PIN used for administrator reset')
     )
