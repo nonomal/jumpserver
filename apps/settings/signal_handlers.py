@@ -82,9 +82,7 @@ def update_site_url():
 def after_migrate_some_config(sender, app_config, **kwargs):
     last_app = list(apps.get_app_configs())[-1]
     if app_config.name == last_app.name:
-        pass
-
-    update_site_url()
+        update_site_url()
 
 
 @receiver(django_ready)
