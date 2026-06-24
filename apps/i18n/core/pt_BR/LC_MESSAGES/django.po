@@ -9475,6 +9475,10 @@ msgstr ""
 "Cliente, atualmente utilizado para invocar um programa cliente específico "
 "para conectar ativos"
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "Mais downloads"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr "Arquivo zip inválido"

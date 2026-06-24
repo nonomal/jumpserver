@@ -9132,6 +9132,10 @@ msgstr "用戶端"
 msgid "Client, currently used to launch the client"
 msgstr "客戶端，目前用來喚起特定客戶端程式連接資產"
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "更多下載"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr "無效的 zip 文件"

@@ -9479,6 +9479,10 @@ msgstr ""
 "Khách hàng, hiện đang được sử dụng để khởi động chương trình khách hàng cụ "
 "thể kết nối với tài sản"
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "Tải xuống thêm"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr "Tệp zip không hợp lệ"

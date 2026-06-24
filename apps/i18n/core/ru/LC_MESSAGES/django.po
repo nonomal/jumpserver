@@ -9487,6 +9487,10 @@ msgstr ""
 "Клиент в настоящее время используется для запуска конкретной клиентской "
 "программы для подключения к активам"
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "Дополнительные загрузки"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr "Неверный zip файл"

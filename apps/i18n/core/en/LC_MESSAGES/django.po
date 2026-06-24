@@ -8941,6 +8941,10 @@ msgstr ""
 msgid "Client, currently used to launch the client"
 msgstr ""
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "More downloads"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr ""

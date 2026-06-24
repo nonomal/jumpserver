@@ -9368,6 +9368,10 @@ msgstr ""
 "クライアントは、特定のクライアントプログラムを呼び起こして資産に接続するため"
 "に使用されます"
 
+#: templates/resource_download.html:32
+msgid "More download"
+msgstr "その他のダウンロード"
+
 #: terminal/api/applet/applet.py:55 terminal/api/virtualapp/virtualapp.py:43
 msgid "Invalid zip file"
 msgstr "zip ファイルが無効です"
