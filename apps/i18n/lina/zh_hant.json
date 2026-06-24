@@ -1621,7 +1621,7 @@
     "WeakPassword": "弱密碼",
     "WebCreate": "創建資產-Web",
     "WebHelpMessage": "Web 類型資產依賴於遠程應用，請前往系統設置在遠程應用中配置",
-    "DatabaseConnectivityTestHelpMessage": "Redis、DB2、Dameng、ClickHouse 類型的資料庫資產暫不支援可連接性測試。",
+    "DatabaseConnectivityTestHelpMessage": "Redis、DB2、Dameng、ClickHouse 類型的資料庫資產暫不支援可連接性測試；Oracle、MongoDB 類型的資料庫資產暫不支援透過用戶端進行連接。",
     "WebSocketDisconnect": "WebSocket 斷開",
     "WebTerminal": "Web終端",
     "WebUpdate": "更新資產-Web",

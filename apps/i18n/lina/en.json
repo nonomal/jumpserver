@@ -1605,7 +1605,7 @@
     "WeakPassword": "Weak password",
     "WebCreate": "Create asset - web",
     "WebHelpMessage": "Web type assets depend on remote applications, please go to system settings and configure in remote applications",
-    "DatabaseConnectivityTestHelpMessage": "Connectivity testing is not supported for Redis, DB2, Dameng, and ClickHouse database assets.",
+    "DatabaseConnectivityTestHelpMessage": "Connectivity testing is not supported for Redis, DB2, Dameng, and ClickHouse database assets. Oracle and MongoDB database assets do not support connecting through a client.",
     "WebSocketDisconnect": "Websocket disconnected",
     "WebTerminal": "Web terminal",
     "WebUpdate": "Update the asset - web",

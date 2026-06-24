@@ -1615,7 +1615,7 @@
     "WeakPassword": "Слабый пароль",
     "WebCreate": "Создать актив - веб",
     "WebHelpMessage": "Ресурсы типа веб зависят от удаленных приложений, перейдите в системные настройки и выполните настройку удаленных приложений.",
-    "DatabaseConnectivityTestHelpMessage": "Проверка подключения не поддерживается для ресурсов баз данных типов Redis, DB2, Dameng и ClickHouse.",
+    "DatabaseConnectivityTestHelpMessage": "Проверка подключения не поддерживается для ресурсов баз данных типов Redis, DB2, Dameng и ClickHouse. Ресурсы баз данных типов Oracle и MongoDB не поддерживают подключение через клиент.",
     "WebSocketDisconnect": "Вебсокет отключен",
     "WebTerminal": "Веб-терминал",
     "WebUpdate": "Обновить актив - веб",
