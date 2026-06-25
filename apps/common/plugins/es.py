@@ -123,9 +123,10 @@ class ESClientV8(ESClientBase):
 
 
 def raise_invalid_elasticsearch(exc):
+    logger.warning('Elasticsearch validation failed: %s', exc)
     if isinstance(exc, UNSUPPORTED_PRODUCT_ERRORS):
         raise InvalidElasticsearchProduct
-    raise InvalidElasticsearch(exc)
+    raise InvalidElasticsearch
 
 
 def get_es_client_version(**kwargs):
