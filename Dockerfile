@@ -1,4 +1,4 @@
-FROM jumpserver/core-base:20251010_085918 AS stage-build
+FROM jumpserver/core-base:20260526_063354 AS stage-build
 
 ARG VERSION
 
@@ -11,15 +11,16 @@ RUN echo > /opt/jumpserver/config.yml \
     if [ -n "${VERSION}" ]; then \
         sed -i "s@VERSION = .*@VERSION = '${VERSION}'@g" apps/jumpserver/const.py; \
     fi
-
 RUN set -ex \
     && export SECRET_KEY=$(head -c100 < /dev/urandom | base64 | tr -dc A-Za-z0-9 | head -c 48) \
     && . /opt/py3/bin/activate \
+    && uv pip install -r pyproject.toml \
+    && rm -rf /root/.cache/ \
     && cd apps \
     && python manage.py compilemessages
 
 
-FROM python:3.11-slim-bullseye
+FROM python:3.14-slim-trixie
 ENV LANG=en_US.UTF-8 \
     PATH=/opt/py3/bin:$PATH
 
@@ -31,15 +32,16 @@ ARG TOOLS="                           \
         cron                          \
         ca-certificates               \
         default-libmysqlclient-dev    \
+        libmariadb3                   \
+        postgresql-client             \
         openssh-client                \
         sshpass                       \
-        nmap                          \
         bubblewrap"
 
 ARG APT_MIRROR=http://deb.debian.org
 
 RUN set -ex \
-    && sed -i "s@http://.*.debian.org@${APT_MIRROR}@g" /etc/apt/sources.list \
+    && sed -i "s@http://.*.debian.org@${APT_MIRROR}@g" /etc/apt/sources.list.d/debian.sources \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && apt-get update > /dev/null \
     && apt-get -y install --no-install-recommends ${DEPENDENCIES} \

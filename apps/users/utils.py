@@ -6,6 +6,8 @@ import os
 import re
 import time
 from contextlib import contextmanager
+from urllib.parse import unquote
+import hashlib
 
 import pyotp
 from django.conf import settings
@@ -17,6 +19,7 @@ from common.utils import reverse, get_object_or_none, ip, safe_next_url
 from .models import User
 
 logger = logging.getLogger('jumpserver.users')
+otp_digest = hashlib.sha256 if settings.OTP_DIGEST == 'sha256' else hashlib.sha1
 
 
 def send_user_created_mail(user):
@@ -60,13 +63,16 @@ def redirect_user_first_login_or_index(request, redirect_field_name):
     # 防止 next 地址为 None
     if not url or url.lower() in ['none']:
         url = reverse('index')
+    # 处理下载地址编码问题 '%2Fui%2F'
+    url = unquote(url)
     return url
 
 
 def generate_otp_uri(username, otp_secret_key=None, issuer="JumpServer"):
     if otp_secret_key is None:
         otp_secret_key = base64.b32encode(os.urandom(10)).decode('utf-8')
-    totp = pyotp.TOTP(otp_secret_key)
+
+    totp = pyotp.TOTP(otp_secret_key, digest=otp_digest)
     otp_issuer_name = settings.OTP_ISSUER_NAME or issuer
     uri = totp.provisioning_uri(name=username, issuer_name=otp_issuer_name)
     return uri, otp_secret_key
@@ -75,7 +81,8 @@ def generate_otp_uri(username, otp_secret_key=None, issuer="JumpServer"):
 def check_otp_code(otp_secret_key, otp_code):
     if not otp_secret_key or not otp_code:
         return False
-    totp = pyotp.TOTP(otp_secret_key)
+
+    totp = pyotp.TOTP(otp_secret_key, digest=otp_digest)
     otp_valid_window = settings.OTP_VALID_WINDOW or 0
     return totp.verify(otp=otp_code, valid_window=otp_valid_window)
 
@@ -136,7 +143,7 @@ class BlockUtilBase:
         username = username.lower() if username else ''
         self.username = username
         self.ip = ip
-        self.limit_key = self.LIMIT_KEY_TMPL.format(username, ip)
+        self.limit_key = self.LIMIT_KEY_TMPL.format(username)
         self.block_key = self.BLOCK_KEY_TMPL.format(username)
         self.key_ttl = int(settings.SECURITY_LOGIN_LIMIT_TIME) * 60
 
@@ -233,12 +240,12 @@ class BlockGlobalIpUtilBase:
 
 
 class LoginBlockUtil(BlockUtilBase):
-    LIMIT_KEY_TMPL = "_LOGIN_LIMIT_{}_{}"
+    LIMIT_KEY_TMPL = "_LOGIN_LIMIT_{}"
     BLOCK_KEY_TMPL = "_LOGIN_BLOCK_{}"
 
 
 class MFABlockUtils(BlockUtilBase):
-    LIMIT_KEY_TMPL = "_MFA_LIMIT_{}_{}"
+    LIMIT_KEY_TMPL = "_MFA_LIMIT_{}"
     BLOCK_KEY_TMPL = "_MFA_BLOCK_{}"
 
 
@@ -320,6 +327,6 @@ def is_auth_confirm_time_valid(session):
 
 @contextmanager
 def activate_user_language(user):
-    language = getattr(user, 'lang', settings.LANGUAGE_CODE)
+    language = getattr(user, 'lang') or settings.LANGUAGE_CODE
     with translation.override(language):
         yield

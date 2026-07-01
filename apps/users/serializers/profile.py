@@ -68,14 +68,14 @@ class UserProfileSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         read_only_fields = [
             'date_joined', 'last_login', 'created_by', 'source',
-            'receive_backends',
+            'receive_backends', 'has_jdmc',
         ]
         fields_mini = [
             'id', 'name', 'username', 'email',
         ]
         fields = UserSerializer.Meta.fields + [
             'public_key_comment', 'public_key_hash_md5', 'guide_url',
-            "wecom_id", "dingtalk_id", "feishu_id", "slack_id", 'lang'
+            "wecom_id", "dingtalk_id", "feishu_id", "slack_id", 'lang', 'has_jdmc'
         ] + read_only_fields
 
         extra_kwargs = dict(UserSerializer.Meta.extra_kwargs)
@@ -146,7 +146,7 @@ class UserProfileSerializer(UserSerializer):
         return password
 
     def get_lang(self, obj) -> str:
-        return getattr(obj, 'lang', settings.LANGUAGE_CODE)
+        return getattr(obj, 'lang') or settings.LANGUAGE_CODE
 
 
 class UserPKUpdateSerializer(serializers.ModelSerializer):

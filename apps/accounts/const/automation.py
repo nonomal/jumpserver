@@ -56,7 +56,7 @@ class SecretStrategy(models.TextChoices):
 
 class SSHKeyStrategy(models.TextChoices):
     # add = 'add', _('Append SSH KEY')
-    set_jms = 'set_jms', _('Replace (Replace only keys pushed by JumpServer) ')
+    set_jms = 'set_jms', _('Replace (Replace only keys pushed by system) ')
     set = 'set', _('Empty and append SSH KEY')
 
 
@@ -133,7 +133,7 @@ class GatherAccountDetailField(models.TextChoices):
     account_status = 'account_status', _('Account status')
     default_tablespace = 'default_tablespace', _('Default tablespace')
     roles = 'roles', _('Role')
-    privileges = 'privileges', _('Privileged')
+    privileges = 'privileges', _('Perms')
     groups = 'groups', _('Groups')
     sudoers = 'sudoers', 'sudoers'
     authorized_keys = 'authorized_keys', _('Authorized keys')

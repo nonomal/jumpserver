@@ -79,6 +79,7 @@ special_pid_mapper = {
     'acls.loginacl': 'perms',
     'acls.loginassetacl': 'perms',
     'acls.connectmethodacl': 'perms',
+    'acls.datamaskingrule': 'perms',
     'xpack.account': 'cloud_import',
     'xpack.syncinstancedetail': 'cloud_import',
     'xpack.syncinstancetask': 'cloud_import',
@@ -128,15 +129,34 @@ special_pid_mapper = {
     "rbac.view_systemtools": "view_workbench",
     'tickets.view_ticket': 'tickets',
     "audits.joblog": "job_audit",
+    'oauth2_provider.accesstoken': 'authentication',
 }
+
+
+if settings.JDMC_ENABLED:
+    view_nodes_data.append({'id': 'view_jdmc', 'name': _('JDMC console')})
+    special_pid_mapper["rbac.view_jdmc"] = "view_jdmc"
+
 
 special_setting_pid_mapper = {
     "rbac.view_userloginreport": "report_node",
+    "rbac.add_userloginreport": "report_node",
+    "rbac.delete_userloginreport": "report_node",
     "rbac.view_userchangepasswordreport": "report_node",
+    "rbac.add_userchangepasswordreport": "report_node",
+    "rbac.delete_userchangepasswordreport": "report_node",
     "rbac.view_assetstatisticsreport": "report_node",
+    "rbac.add_assetstatisticsreport": "report_node",
+    "rbac.delete_assetstatisticsreport": "report_node",
     "rbac.view_assetactivityreport": "report_node",
+    "rbac.add_assetactivityreport": "report_node",
+    "rbac.delete_assetactivityreport": "report_node",
     "rbac.view_accountstatisticsreport": "report_node",
+    "rbac.add_accountstatisticsreport": "report_node",
+    "rbac.delete_accountstatisticsreport": "report_node",
     "rbac.view_accountautomationreport": "report_node",
+    "rbac.add_accountautomationreport": "report_node",
+    "rbac.delete_accountautomationreport": "report_node",
     "settings.change_email": "notifications",
     "settings.change_sms": "notifications",
     "settings.change_systemmsgsubscription": "notifications",
@@ -183,6 +203,10 @@ verbose_name_mapper = {
     'tickets.view_ticket': _("Ticket"),
     'settings.setting': _("Common setting"),
     'rbac.view_permission': _('View permission tree'),
+    'authentication.passkey': _("Passkey"),
+    'oauth2_provider.accesstoken': _("Access token"),
+    'oauth2_provider.view_accesstoken': _("View access token"),
+    'oauth2_provider.delete_accesstoken': _("Revoke access token"),
 }
 
 xpack_nodes = [

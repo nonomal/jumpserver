@@ -43,7 +43,7 @@ class NodeViewSet(SuggestionMixin, OrgBulkModelViewSet):
     search_fields = ('full_value',)
     serializer_class = serializers.NodeSerializer
     rbac_perms = {
-        'match': 'assets.match_node',
+        'match': 'assets.view_node',
         'check_assets_amount_task': 'assets.change_node'
     }
 
@@ -94,6 +94,10 @@ class NodeAddChildrenApi(generics.UpdateAPIView):
         node_ids = request.data.get("nodes")
         children = Node.objects.filter(id__in=node_ids)
         for node in children:
+            if node.is_ancestor(instance):
+                # 如果 node 是 instance 的祖先节点，则不能添加为 instance 的子节点，否则会形成环，出现断层
+                error = _("Node {} is an ancestor of node {}, can't be added as its child".format(node.value, instance.value))
+                return Response(data={'error': error}, status=status.HTTP_400_BAD_REQUEST)
             node.parent = instance
         update_nodes_assets_amount.delay(ttl=5, node_ids=(instance.id,))
         return Response("OK")

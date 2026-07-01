@@ -1,12 +1,10 @@
 import json
-import os
-import shutil
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db import models, connections
+from django.db import models
 from django.db.utils import ProgrammingError, OperationalError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.utils.encoders import JSONEncoder
@@ -16,6 +14,7 @@ from common.db.utils import Encryptor
 from common.utils import get_logger
 from .const import ChatAITypeChoices
 from .signals import setting_changed
+
 
 logger = get_logger(__name__)
 
@@ -201,48 +200,19 @@ def get_chatai_data():
         'url': settings.GPT_BASE_URL,
         'api_key': settings.GPT_API_KEY,
         'proxy': settings.GPT_PROXY,
-        'model': settings.GPT_MODEL,
+        'model': settings.GPT_MODEL if settings.GPT_MODEL != 'custom' else settings.CUSTOM_GPT_MODEL,
     }
     if settings.CHAT_AI_TYPE != ChatAITypeChoices.gpt:
         data['url'] = settings.DEEPSEEK_BASE_URL
         data['api_key'] = settings.DEEPSEEK_API_KEY
         data['proxy'] = settings.DEEPSEEK_PROXY
-        data['model'] = settings.DEEPSEEK_MODEL
+        data['model'] = settings.DEEPSEEK_MODEL if settings.DEEPSEEK_MODEL != 'custom' else settings.CUSTOM_DEEPSEEK_MODEL
 
     return data
 
 
-def init_sqlite_db():
-    db_path = settings.LEAK_PASSWORD_DB_PATH
-    if not os.path.isfile(db_path):
-        # 这里处理一下历史数据，有可能用户 copy 了旧的文件到 目录下
-        src = os.path.join(settings.PROJECT_DIR, 'data', 'leak_passwords.db')
-        if not os.path.isfile(src):
-            src = os.path.join(
-                settings.APPS_DIR, 'accounts', 'automations',
-                'check_account', 'leak_passwords.db'
-            )
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        shutil.copy(src, db_path)
-    logger.info(f'init sqlite db {db_path}')
-    return db_path
-
-
-def register_sqlite_connection():
-    connections.databases['sqlite'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'ATOMIC_REQUESTS': False,
-        'NAME': settings.LEAK_PASSWORD_DB_PATH,
-        'TIME_ZONE': None,
-        'CONN_HEALTH_CHECKS': False,
-        'CONN_MAX_AGE': 0,
-        'OPTIONS': {},
-        'AUTOCOMMIT': True,
-    }
-
-
 class LeakPasswords(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True, verbose_name=_("ID"))
     password = models.CharField(max_length=1024, verbose_name=_("Password"))
 
     class Meta:

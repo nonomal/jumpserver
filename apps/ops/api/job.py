@@ -11,12 +11,16 @@ from django.shortcuts import get_object_or_404
 from django.utils._os import safe_join
 from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from acls.models import LoginAssetACL
 from assets.models import Asset
 from common.const.http import POST
+from common.drf.throttling import FileTransferThrottle
 from common.permissions import IsValidUser
+from common.utils import get_request_ip_or_data
 from ops.celery import app
 from ops.const import Types
 from ops.models import Job, JobExecution, JMSPermedInventory
@@ -48,7 +52,22 @@ def set_task_to_serializer_data(serializer, task_id):
     setattr(serializer, "_data", data)
 
 
-class JobViewSet(OrgBulkModelViewSet):
+class LoginAssetACLCheckMixin:
+
+    def check_login_asset_acls(self, user, assets, account, ip):
+        for asset in assets:
+            kwargs = {'user': user, 'asset': asset, 'account_username': account}
+            acls = LoginAssetACL.filter_queryset(**kwargs)
+            acl = LoginAssetACL.get_match_rule_acls(user, ip, acls)
+            if not acl:
+                return
+            if not acl.is_action(acl.ActionChoices.accept):
+                raise PermissionDenied(_(
+                    "Login to asset {}({}) is rejected by login asset ACL ({})".format(asset.name, asset.address, acl)
+                ))
+
+
+class JobViewSet(LoginAssetACLCheckMixin, OrgBulkModelViewSet):
     serializer_class = JobSerializer
     filterset_fields = ('name', 'type')
     search_fields = ('name', 'comment')
@@ -115,9 +134,16 @@ class JobViewSet(OrgBulkModelViewSet):
     def run_job(self, job, serializer):
         execution = job.create_execution()
         if self._parameters:
-            execution.parameters = JobExecutionSerializer.validate_parameters(self._parameters)
+            execution.parameters = JobExecutionSerializer().validate_parameters(self._parameters)
         execution.creator = self.request.user
         execution.save()
+        assets = merge_nodes_and_assets(job.nodes.all(), job.assets.all(), self.request.user)
+        self.check_login_asset_acls(
+            self.request.user,
+            assets,
+            job.runas,
+            get_request_ip_or_data(self.request)
+        )
 
         set_task_to_serializer_data(serializer, execution.id)
         transaction.on_commit(
@@ -146,7 +172,9 @@ class JobViewSet(OrgBulkModelViewSet):
         return exceeds_limit_files
 
     @action(methods=[POST], detail=False, serializer_class=FileSerializer,
-            permission_classes=[IsValidUser, ], url_path='upload')
+            permission_classes=[IsValidUser, ],
+            throttle_classes=[FileTransferThrottle],
+            url_path='upload')
     def upload(self, request, *args, **kwargs):
         uploaded_files = request.FILES.getlist('files')
         serializer = self.get_serializer(data=request.data)
@@ -186,7 +214,7 @@ class JobViewSet(OrgBulkModelViewSet):
         return Response({'task_id': serializer.data.get('task_id')}, status=201)
 
 
-class JobExecutionViewSet(OrgBulkModelViewSet):
+class JobExecutionViewSet(LoginAssetACLCheckMixin, OrgBulkModelViewSet):
     serializer_class = JobExecutionSerializer
     http_method_names = ('get', 'post', 'head', 'options',)
     model = JobExecution
@@ -203,6 +231,16 @@ class JobExecutionViewSet(OrgBulkModelViewSet):
         run_ops_job_execution.apply_async((str(instance.id),), task_id=str(instance.id))
 
     def perform_create(self, serializer):
+        job = serializer.validated_data.get('job')
+        if job:
+            assets = merge_nodes_and_assets(job.nodes.all(), list(job.assets.all()), self.request.user)
+            self.check_login_asset_acls(
+                self.request.user,
+                assets,
+                job.runas,
+                get_request_ip_or_data(self.request)
+            )
+
         instance = serializer.save()
         instance.job_version = instance.job.version
         instance.material = instance.job.material
@@ -235,7 +273,7 @@ class JobExecutionViewSet(OrgBulkModelViewSet):
                 instance = get_object_or_404(JobExecution, task_id=task_id, creator=request.user)
         except Http404:
             return Response(
-                {'error': _('The task is being created and cannot be interrupted. Please try again later.')},
+                {'error': _("The task is being created and cannot be interrupted. Please try again later.")},
                 status=400
             )
         try:
@@ -305,13 +343,13 @@ class UsernameHintsAPI(APIView):
         assets = merge_nodes_and_assets(node_ids, assets, request.user)
 
         top_accounts = Account.objects \
-                           .exclude(username__startswith='jms_') \
-                           .exclude(username__startswith='js_') \
-                           .filter(username__icontains=query) \
-                           .filter(asset__in=assets) \
-                           .values('username') \
-                           .annotate(total=Count('username')) \
-                           .order_by('-total', '-username')[:10]
+            .exclude(username__startswith='jms_') \
+            .exclude(username__startswith='js_') \
+            .filter(username__icontains=query) \
+            .filter(asset__in=assets) \
+            .values('username') \
+            .annotate(total=Count('username')) \
+            .order_by('-total', '-username')[:10]
         return Response(data=top_accounts)
 
 

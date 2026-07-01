@@ -3,36 +3,49 @@ name: Build and Push Base Image
 on:
   pull_request:
     branches:
-      - 'dev'
-      - 'v*'
+        - 'dev'
+        - 'v*'
     paths:
-      - poetry.lock
-      - pyproject.toml
-      - Dockerfile-base
-      - package.json
-      - go.mod
-      - yarn.lock
-      - pom.xml
-      - install_deps.sh
-      - utils/clean_site_packages.sh
+        - poetry.lock
+        - pyproject.toml
+        - Dockerfile-base
+        - package.json
+        - go.mod
+        - yarn.lock
+        - pom.xml
+        - install_deps.sh
+        - utils/clean_site_packages.sh
     types:
-      - opened
-      - synchronize
-      - reopened
+        - opened
+        - synchronize
+        - reopened
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '构建基础镜像所用的分支'
+        required: true
+        type: string
+        default: 'main'
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
+      - name: Lock Pull Request
+        if: github.event_name == 'push'
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -d '{"state":"pending", "description":"Action running, merge disabled", "context":"Lock PR"}' \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v7.0.0-28
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -58,6 +71,7 @@ jobs:
           push: true
           file: Dockerfile-base
           tags: jumpserver/core-base:${{ env.IMAGE_TAG }}
+          context: .
 
       - name: Update Dockerfile
         run: |
@@ -69,6 +83,13 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add Dockerfile
           git commit -m "perf: Update Dockerfile with new base image tag"
-          git push origin ${{ github.event.pull_request.head.ref }}
+          git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Unlock Pull Request
+        if: github.event_name == 'push'
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -d '{"state":"success", "description":"Action running, merge disabled", "context":"Lock PR"}' \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}"

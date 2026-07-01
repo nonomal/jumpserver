@@ -1,9 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from django.views import View
 
 from common.utils import get_logger
 from users.models import User
+from authentication.signals import backend_auth_failed
+from authentication.errors import reason_choices, reason_user_invalid
 
 UserModel = get_user_model()
 logger = get_logger(__file__)
@@ -25,7 +26,10 @@ class JMSBaseAuthBackend:
         """
         # 三方用户认证完成后，在后续的 get_user 获取逻辑中，也应该需要检查用户是否有效
         is_valid = getattr(user, 'is_valid', None)
-        return is_valid or is_valid is None
+        if not is_valid:
+            logger.info("User %s is not valid", getattr(user, "username", "<unknown>"))
+            return False
+        return True
 
     # allow user to authenticate
     def username_allow_authenticate(self, username):
@@ -65,9 +69,12 @@ class JMSModelBackend(JMSBaseAuthBackend, ModelBackend):
         return True
 
 
-class BaseAuthCallbackClientView(View):
-    http_method_names = ['get']
+class RedirectAuthBackend(JMSBaseAuthBackend):
+    backend = None
 
-    def get(self, request):
-        from authentication.views.utils import redirect_to_guard_view
-        return redirect_to_guard_view(query_string='next=client')
+    def send_backend_auth_failed_signal(self, request, username=None, reason=None):
+        default_reason = reason_choices.get(reason_user_invalid, reason)
+        backend_auth_failed.send(
+            sender=self.__class__, username=username, request=request,
+            reason=default_reason, backend=self.backend
+        )

@@ -2,6 +2,7 @@
 #
 import datetime
 import inspect
+
 import sys
 
 if sys.version_info.major == 3 and sys.version_info.minor >= 10:
@@ -19,9 +20,11 @@ from elasticsearch7 import Elasticsearch
 from elasticsearch7.helpers import bulk
 from elasticsearch7.exceptions import RequestError, SSLError
 from elasticsearch7.exceptions import NotFoundError as NotFoundError7
+from elasticsearch7.exceptions import UnsupportedProductError as UnsupportedProductError7
 
 from elasticsearch8.exceptions import NotFoundError as NotFoundError8
 from elasticsearch8.exceptions import BadRequestError
+from elasticsearch8.exceptions import UnsupportedProductError as UnsupportedProductError8
 
 from common.utils.common import lazyproperty
 from common.utils import get_logger
@@ -30,10 +33,20 @@ from common.exceptions import JMSException
 
 logger = get_logger(__file__)
 
+UNSUPPORTED_PRODUCT_ERRORS = (
+    UnsupportedProductError7,
+    UnsupportedProductError8,
+)
+
 
 class InvalidElasticsearch(JMSException):
     default_code = 'invalid_elasticsearch'
     default_detail = _('Invalid elasticsearch config')
+
+
+class InvalidElasticsearchProduct(JMSException):
+    default_code = 'invalid_elasticsearch_product'
+    default_detail = _('The server is not Elasticsearch or this product is not supported')
 
 
 class NotSupportElasticsearch8(JMSException):
@@ -109,6 +122,13 @@ class ESClientV8(ESClientBase):
         return sorts
 
 
+def raise_invalid_elasticsearch(exc):
+    logger.warning('Elasticsearch validation failed: %s', exc)
+    if isinstance(exc, UNSUPPORTED_PRODUCT_ERRORS):
+        raise InvalidElasticsearchProduct
+    raise InvalidElasticsearch
+
+
 def get_es_client_version(**kwargs):
     try:
         es = Elasticsearch(**kwargs)
@@ -118,7 +138,7 @@ def get_es_client_version(**kwargs):
     except SSLError:
         raise InvalidElasticsearchSSL
     except Exception as e:
-        raise InvalidElasticsearch(e)
+        raise_invalid_elasticsearch(e)
 
 
 class ES(object):
@@ -138,7 +158,7 @@ class ES(object):
         try:
             self.client = ESClient(hosts=hosts, max_retries=0, **kwargs)
         except Exception as e:
-            raise InvalidElasticsearch(e)
+            raise_invalid_elasticsearch(e)
         self.es = self.client.es
         self.index_prefix = self.config.get('INDEX') or 'jumpserver'
         self.is_index_by_date = bool(self.config.get('INDEX_BY_DATE', False))
@@ -334,6 +354,10 @@ class ES(object):
     def is_keyword(props: dict, field: str) -> bool:
         return props.get(field, {}).get("type", "keyword") == "keyword"
 
+    @staticmethod
+    def is_long(props: dict, field: str) -> bool:
+        return props.get(field, {}).get("type") == "long"
+
     def get_query_body(self, **kwargs):
         new_kwargs = {}
         for k, v in kwargs.items():
@@ -361,10 +385,10 @@ class ES(object):
         if index_in_field in kwargs:
             index['values'] = kwargs[index_in_field]
 
-        mapping = self.es.indices.get_mapping(index=self.query_index)
+        mapping = self.es.indices.get_mapping(index=self.index)
         props = (
             mapping
-            .get(self.query_index, {})
+            .get(self.index, {})
             .get('mappings', {})
             .get('properties', {})
         )
@@ -373,6 +397,9 @@ class ES(object):
 
         for k, v in kwargs.items():
             if k in ("org_id", "session") and self.is_keyword(props, k):
+                exact[k] = v
+
+            elif self.is_long(props, k):
                 exact[k] = v
 
             elif k in common_keyword_able:

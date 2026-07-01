@@ -29,7 +29,7 @@ from users.utils import (
     redirect_user_first_login_or_index
 )
 from .. import mixins, errors
-from ..const import RSA_PRIVATE_KEY, RSA_PUBLIC_KEY
+from ..const import RSA_PRIVATE_KEY, RSA_PUBLIC_KEY, USER_LOGIN_GUARD_VIEW_REDIRECT_FIELD
 from ..forms import get_user_login_form_cls
 from ..utils import get_auth_methods
 
@@ -65,7 +65,7 @@ class UserLoginContextMixin:
                 'title': title,
                 'code': code
             }
-            for code, title in Language.choices
+            for code, title in Language.choices_supported()
         ]
         return langs
 
@@ -260,7 +260,7 @@ class UserLoginView(mixins.AuthMixin, UserLoginContextMixin, FormView):
 
 
 class UserLoginGuardView(mixins.AuthMixin, RedirectView):
-    redirect_field_name = 'next'
+    redirect_field_name = USER_LOGIN_GUARD_VIEW_REDIRECT_FIELD
     login_url = reverse_lazy('authentication:login')
     login_mfa_url = reverse_lazy('authentication:login-mfa')
     login_confirm_url = reverse_lazy('authentication:login-wait-confirm')
@@ -307,8 +307,8 @@ class UserLoginGuardView(mixins.AuthMixin, RedirectView):
         from django.utils import timezone
         response = super().get(request, *args, **kwargs)
         try:
-
-            lang = request.user.lang if request.user.lang else get_language_from_request(request, check_path=False)
+            request_lang = get_language_from_request(request, check_path=False)
+            lang = request.user.lang if request.user.lang else request_lang
             response.set_cookie(
                 settings.LANGUAGE_COOKIE_NAME,
                 lang,

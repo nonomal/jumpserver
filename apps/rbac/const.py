@@ -20,6 +20,8 @@ exclude_permissions = (
     ('sessions', '*', '*', '*'),
     ('notifications', '*', '*', '*'),
     ('common', 'setting', '*', '*'),
+    ('reports', 'report', '*', '*'),
+    ('reports', 'reportexecution', '*', '*'),
 
     ('authentication', 'privatetoken', '*', '*'),
     ('authentication', 'connectiontoken', 'delete,change', 'connectiontoken'),
@@ -35,6 +37,7 @@ exclude_permissions = (
     ('assets', 'cluster', '*', '*'),
     ('assets', 'systemuser', '*', '*'),
     ('assets', 'favoriteasset', '*', '*'),
+    ('assets', 'favoritefolder', '*', '*'),
     ('assets', 'assetuser', '*', '*'),
     ('assets', 'web', '*', '*'),
     ('assets', 'host', '*', '*'),
@@ -133,12 +136,18 @@ exclude_permissions = (
     ('terminal', 'session', 'delete,change', 'command'),
     ('applications', '*', '*', '*'),
     ('settings', 'chatprompt', 'add,delete,change', 'chatprompt'),
+    ('oauth2_provider', 'grant', '*', '*'),
+    ('oauth2_provider', 'refreshtoken', '*', '*'),
+    ('oauth2_provider', 'idtoken', '*', '*'),
+    ('oauth2_provider', 'application', '*', '*'),
+    ('oauth2_provider', 'accesstoken', 'add,change', 'accesstoken')
 )
 
 only_system_permissions = (
     ('assets', 'platform', 'add,change,delete', 'platform'),
     ('users', 'user', 'delete', 'user'),
     ('rbac', 'role', 'delete,add,change', 'role'),
+    ('rbac', 'menupermission', 'view', 'jdmc'),
     ('rbac', 'systemrole', '*', '*'),
     ('rbac', 'rolebinding', '*', '*'),
     ('rbac', 'systemrolebinding', '*', '*'),
@@ -160,6 +169,7 @@ only_system_permissions = (
     ('authentication', 'temptoken', '*', '*'),
     ('authentication', 'passkey', '*', '*'),
     ('authentication', 'ssotoken', '*', '*'),
+    ('oauth2_provider', 'accesstoken', '*', '*'),
     ('tickets', '*', '*', '*'),
     ('orgs', 'organization', 'view', 'rootorg'),
     ('terminal', 'applet', '*', '*'),

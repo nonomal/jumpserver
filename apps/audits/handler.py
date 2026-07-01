@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from uuid import UUID
 
 from django.core.cache import cache
 from django.db import transaction
@@ -23,6 +24,8 @@ logger = get_logger(__name__)
 
 class OperatorLogHandler(metaclass=Singleton):
     CACHE_KEY = 'OPERATOR_LOG_CACHE_KEY'
+    SYSTEM_OBJECTS = frozenset({"Role"})
+    PREFER_CURRENT_ELSE_USER = frozenset({"SSOToken"})
 
     def __init__(self):
         self.log_client = self.get_storage_client()
@@ -40,13 +43,33 @@ class OperatorLogHandler(metaclass=Singleton):
             value2 = as_current_tz(value2).strftime('%Y-%m-%d %H:%M:%S')
         return value1, value2
 
+    @classmethod
+    def _normalize_diff_value(cls, value):
+        if isinstance(value, datetime):
+            return as_current_tz(value).strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(value, UUID):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: cls._normalize_diff_value(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [cls._normalize_diff_value(v) for v in value]
+        return value
+
+    @classmethod
+    def _value_equal_for_diff(cls, left, right):
+        left = cls._normalize_diff_value(left)
+        right = cls._normalize_diff_value(right)
+        if left == right:
+            return True
+
+        return str(left) == str(right)
+
     def _look_for_two_dict_change(self, left_dict, right_dict):
         # 以右边的字典为基础
         before, after = {}, {}
         for key, value in right_dict.items():
             pre_value = left_dict.get(key, '')
-            pre_value, value = self._consistent_type_to_str(pre_value, value)
-            if sorted(str(value)) == sorted(str(pre_value)):
+            if self._value_equal_for_diff(pre_value, value):
                 continue
             before[key] = pre_value
             after[key] = value
@@ -142,13 +165,21 @@ class OperatorLogHandler(metaclass=Singleton):
             after = self.__data_processing(after)
         return before, after
 
-    @staticmethod
-    def get_org_id(object_name):
-        system_obj = ('Role',)
-        org_id = get_current_org_id()
-        if object_name in system_obj:
-            org_id = Organization.SYSTEM_ID
-        return org_id
+    def get_org_id(self, user, object_name):
+        if object_name in self.SYSTEM_OBJECTS:
+            return Organization.SYSTEM_ID
+
+        current = get_current_org_id()
+        current_id = str(current) if current else None
+
+        if object_name in self.PREFER_CURRENT_ELSE_USER:
+            if current_id and current_id != Organization.DEFAULT_ID:
+                return current_id
+
+            org = user.orgs.distinct().first()
+            return str(org.id) if org else Organization.DEFAULT_ID
+
+        return current_id or Organization.DEFAULT_ID
 
     def create_or_update_operate_log(
             self, action, resource_type, resource=None, resource_display=None,
@@ -164,11 +195,11 @@ class OperatorLogHandler(metaclass=Singleton):
             resource_display = self.get_resource_display(resource)
         resource_id = getattr(resource, 'pk', '')
         before, after = self.data_processing(before, after)
-        if not force and not any([before, after]):
+        if not force and (before == after):
             # 前后都没变化，没必要生成日志，除非手动强制保存
             return
 
-        org_id = self.get_org_id(object_name)
+        org_id = self.get_org_id(user, object_name)
         data = {
             'id': log_id, "user": str(user), 'action': action,
             'resource_type': str(resource_type), 'org_id': org_id,

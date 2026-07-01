@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-from collections import defaultdict
-
 from django.conf import settings
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 from django_filters import rest_framework as drf_filters
@@ -23,6 +22,7 @@ from common.drf.filters import BaseFilterSet, AttrRulesFilterBackend
 from common.utils import get_logger, is_uuid
 from orgs.mixins import generics
 from orgs.mixins.api import OrgBulkModelViewSet
+from orgs.utils import tmp_to_root_org
 from ...const import GATEWAY_NAME
 from ...notifications import BulkUpdatePlatformSkipAssetUserMsg
 
@@ -33,13 +33,27 @@ __all__ = [
 ]
 
 
+def get_license_asset_limit():
+    if not settings.XPACK_ENABLED:
+        return 0
+
+    try:
+        from xpack.utils import get_license_asset_count
+        count = get_license_asset_count()
+        return count
+    except ImportError:
+        return 0
+
+
 class AssetFilterSet(BaseFilterSet):
     platform = drf_filters.CharFilter(method='filter_platform')
     is_gateway = drf_filters.BooleanFilter(method='filter_is_gateway')
     exclude_platform = drf_filters.CharFilter(field_name="platform__name", lookup_expr='exact', exclude=True)
     zone = drf_filters.CharFilter(method='filter_zone')
     type = drf_filters.CharFilter(field_name="platform__type", lookup_expr="exact")
+    exclude_type = drf_filters.CharFilter(field_name="platform__type", lookup_expr="exact", exclude=True)
     category = drf_filters.CharFilter(field_name="platform__category", lookup_expr="exact")
+    exclude_category = drf_filters.CharFilter(field_name="platform__category", lookup_expr="exact", exclude=True)
     protocols = drf_filters.CharFilter(method='filter_protocols')
     gateway_enabled = drf_filters.BooleanFilter(
         field_name="platform__gateway_enabled", lookup_expr="exact"
@@ -113,7 +127,7 @@ class BaseAssetViewSet(OrgBulkModelViewSet):
         ("accounts", AccountSerializer),
     )
     rbac_perms = (
-        ("match", "assets.match_asset"),
+        ("match", "assets.view_asset"),
         ("platform", "assets.view_platform"),
         ("gateways", "assets.view_gateway"),
         ("accounts", "assets.view_account"),
@@ -154,9 +168,18 @@ class BaseAssetViewSet(OrgBulkModelViewSet):
             error = _('Cannot create asset directly, you should create a host or other')
             return Response({'error': error}, status=400)
 
-        if not settings.XPACK_LICENSE_IS_VALID and self.model.objects.order_by().count() >= 5000:
+        with tmp_to_root_org():
+            asset_count = Asset.objects.order_by().count()
+
+        if not settings.XPACK_LICENSE_IS_VALID and asset_count >= 5000:
             error = _('The number of assets exceeds the limit of 5000')
             return Response({'error': error}, status=400)
+
+        if settings.XPACK_LICENSE_IS_VALID:
+            license_asset_limit = get_license_asset_limit()
+            if asset_count >= license_asset_limit:
+                error = _('The number of assets exceeds the license limit')
+                return Response({'error': error}, status=400)
 
         return super().create(request, *args, **kwargs)
 
@@ -181,33 +204,18 @@ class AssetViewSet(SuggestionMixin, BaseAssetViewSet):
     def sync_platform_protocols(self, request, *args, **kwargs):
         platform_id = request.data.get('platform_id')
         platform = get_object_or_404(Platform, pk=platform_id)
-        assets = platform.assets.all()
+        asset_ids = list(platform.assets.values_list('id', flat=True))
+        platform_protocols = list(platform.protocols.values('name', 'port'))
 
-        platform_protocols = {
-            p['name']: p['port']
-            for p in platform.protocols.values('name', 'port')
-        }
-        asset_protocols_map = defaultdict(set)
-        protocols = assets.prefetch_related('protocols').values_list(
-            'id', 'protocols__name'
-        )
-        for asset_id, protocol in protocols:
-            asset_id = str(asset_id)
-            asset_protocols_map[asset_id].add(protocol)
-        objs = []
-        for asset_id, protocols in asset_protocols_map.items():
-            protocol_names = set(platform_protocols) - protocols
-            if not protocol_names:
-                continue
-            for name in protocol_names:
-                objs.append(
-                    Protocol(
-                        name=name,
-                        port=platform_protocols[name],
-                        asset_id=asset_id,
-                    )
-                )
-        Protocol.objects.bulk_create(objs)
+        with transaction.atomic():
+            if asset_ids:
+                Protocol.objects.filter(asset_id__in=asset_ids).delete()
+            if asset_ids and platform_protocols:
+                objs = []
+                for aid in asset_ids:
+                    for p in platform_protocols:
+                        objs.append(Protocol(name=p['name'], port=p['port'], asset_id=aid))
+                Protocol.objects.bulk_create(objs)
         return Response(status=status.HTTP_200_OK)
 
     def filter_bulk_update_data(self):

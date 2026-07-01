@@ -92,6 +92,9 @@ ALLOWED_HOSTS = ['*']
 # https://docs.djangoproject.com/en/4.1/ref/settings/#std-setting-CSRF_TRUSTED_ORIGINS
 CSRF_TRUSTED_ORIGINS = []
 for host_port in ALLOWED_DOMAINS:
+    if '*' in ALLOWED_DOMAINS:
+        CSRF_TRUSTED_ORIGINS = ['http://*', 'https://*']
+        break
     origin = host_port.strip('.')
 
     if not origin:
@@ -130,6 +133,7 @@ INSTALLED_APPS = [
     'settings.apps.SettingsConfig',
     'terminal.apps.TerminalConfig',
     'audits.apps.AuditsConfig',
+    'oauth2_provider',
     'authentication.apps.AuthenticationConfig',  # authentication
     'tickets.apps.TicketsConfig',
     'acls.apps.AclsConfig',
@@ -159,14 +163,19 @@ INSTALLED_APPS = [
     'simple_history',  # 这个要放到最后，别特么瞎改顺序
 ]
 
+PRE_CUSTOM_MIDDLEWARES = [m for m in CONFIG.PRE_CUSTOM_MIDDLEWARES.split(',') if m.strip()]
+POST_CUSTOM_MIDDLEWARES = [m for m in CONFIG.POST_CUSTOM_MIDDLEWARES.split(',') if m.strip()]
+
 MIDDLEWARE = [
     'jumpserver.middleware.StartMiddleware',
+    *PRE_CUSTOM_MIDDLEWARES,
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'jumpserver.middleware.CsrfCheckMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -183,11 +192,16 @@ MIDDLEWARE = [
     'authentication.middleware.SessionCookieMiddleware',
     'simple_history.middleware.HistoryRequestMiddleware',
     'jumpserver.middleware.SafeRedirectMiddleware',
+    *POST_CUSTOM_MIDDLEWARES,
     'jumpserver.middleware.EndMiddleware',
 ]
 
 if DEBUG or DEBUG_DEV:
-    INSTALLED_APPS.insert(0, 'daphne')
+    try:
+        import daphne  # noqa
+        INSTALLED_APPS.insert(0, 'daphne')
+    except ImportError:
+        pass
 
 ROOT_URLCONF = 'jumpserver.urls'
 
@@ -267,9 +281,17 @@ DATABASES = {
 DB_USE_SSL = CONFIG.DB_USE_SSL
 if DB_ENGINE == 'mysql':
     DB_OPTIONS['init_command'] = "SET sql_mode='STRICT_TRANS_TABLES'"
-    if DB_USE_SSL:
-        DB_CA_PATH = exist_or_default(os.path.join(CERTS_DIR, 'db_ca.pem'), None)
-        DB_OPTIONS['ssl'] = {'ca': DB_CA_PATH}
+
+if DB_USE_SSL:
+    DB_CA_PATH = exist_or_default(os.path.join(CERTS_DIR, 'db_ca.pem'), None)
+
+    if DB_ENGINE == 'mysql':
+        DB_OPTIONS['ssl'] = {'ca': DB_CA_PATH }
+    elif DB_ENGINE == 'postgresql':
+        DB_OPTIONS.update({
+            'sslmode': 'require',
+            'sslrootcert': DB_CA_PATH,
+        })
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
@@ -354,6 +376,7 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
 X_FRAME_OPTIONS = CONFIG.X_FRAME_OPTIONS
+VERIFY_EXTERNAL_SSL = CONFIG.VERIFY_EXTERNAL_SSL
 
 # Cache use redis
 REDIS_SSL_KEY = exist_or_default(os.path.join(CERTS_DIR, 'redis_client.key'), None)

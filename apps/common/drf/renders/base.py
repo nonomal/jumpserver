@@ -12,9 +12,9 @@ from rest_framework.renderers import BaseRenderer
 from rest_framework.utils import encoders, json
 
 from common.serializers import fields as common_fields
+from common.serializers.fields import EncryptedField
 from common.utils import get_logger
 from .mixins import LogMixin
-
 
 logger = get_logger(__file__)
 
@@ -23,6 +23,8 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
     # 渲染模板标识, 导入、导出、更新模板: ['import', 'update', 'export']
     template = 'export'
     serializer = None
+    # 敏感字段名称，导出数据时这些字段不允许导出
+    secret_field_names = ("password", "token", "secret", "key", "private_key", "passphrase")
 
     @staticmethod
     def _check_validation_data(data):
@@ -48,6 +50,18 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
         disposition = 'attachment; filename="{}"'.format(filename)
         response['Content-Disposition'] = disposition
 
+    def is_secret_field(self, field):
+        """检查字段是否为敏感字段"""
+        # 检查字段类型是否为 EncryptedField
+        if isinstance(field, EncryptedField):
+            return True
+        # 检查字段名是否包含敏感关键词
+        field_name = field.field_name.lower()
+        for secret_name in self.secret_field_names:
+            if secret_name in field_name:
+                return True
+        return False
+
     def get_rendered_fields(self):
         fields = self.serializer.fields
         meta = getattr(self.serializer, 'Meta', None)
@@ -62,6 +76,9 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
 
         fields_unexport = getattr(meta, 'fields_unexport', [])
         fields = [v for v in fields if v.field_name not in fields_unexport]
+        # 仅真实导出数据时过滤敏感字段，模板需保留这些字段供用户填写
+        if self.template == 'export':
+            fields = [v for v in fields if not self.is_secret_field(v)]
         return fields
 
     @staticmethod
@@ -136,20 +153,29 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
         text = ''
         if hasattr(field, 'get_render_help_text'):
             text = field.get_render_help_text()
+        # boolean field
         elif isinstance(field, serializers.BooleanField):
             text = _('Yes/No')
+        # integer fields
+        elif isinstance(field, serializers.IntegerField):
+            text = _('Number, min {} max {}').format(field.min_value, field.max_value)
+            text = text.replace('min None', '').replace('max None', '')
+        # char fields
+        elif isinstance(field, serializers.IPAddressField):
+            text = _('IP')
+        elif isinstance(field, common_fields.PhoneField):
+            text = _("Phone number, format +8612345678901")
         elif isinstance(field, serializers.CharField):
             if field.max_length:
                 text = _('Text, max length {}').format(field.max_length)
             else:
                 text = _("Long text, no length limit")
-        elif isinstance(field, serializers.IntegerField):
-            text = _('Number, min {} max {}').format(field.min_value, field.max_value)
-            text = text.replace('min None', '').replace('max None', '')
+        # date fields
         elif isinstance(field, serializers.DateTimeField):
             text = _('Datetime format {}').format(timezone.now().strftime(settings.REST_FRAMEWORK['DATETIME_FORMAT']))
-        elif isinstance(field, serializers.IPAddressField):
-            text = _('IP')
+        # choice fields
+        elif isinstance(field, common_fields.LabeledChoiceField):
+            text = _('Label, format ["key:value"]')
         elif isinstance(field, serializers.ChoiceField):
             choices = [str(v) for v in field.choices.keys()]
             if isinstance(field, common_fields.LabeledChoiceField):
@@ -157,10 +183,7 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
                          " value is requisite, options {}").format(','.join(choices))
             else:
                 text = _("Choices, options {}").format(",".join(choices))
-        elif isinstance(field, common_fields.PhoneField):
-            text = _("Phone number, format +8612345678901")
-        elif isinstance(field, common_fields.LabeledChoiceField):
-            text = _('Label, format ["key:value"]')
+        # related fields
         elif isinstance(field, common_fields.ObjectRelatedField):
             text = _("Object, format name(id), name is optional for human read, id is requisite")
         elif isinstance(field, serializers.PrimaryKeyRelatedField):
@@ -173,6 +196,7 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
                 text = _('Labels, format ["key:value", ...], if label not exists, will create it')
             else:
                 text = _('Objects, format ["id", ...]')
+        # list serializer
         elif isinstance(field, serializers.ListSerializer):
             child = field.child
             if hasattr(child, 'get_render_help_text'):
@@ -183,6 +207,7 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
         for item in data:
             row = []
             for field in render_fields:
+                field._row = item
                 value = item.get(field.field_name)
                 value = self.render_value(field, value)
                 row.append(value)
@@ -272,9 +297,9 @@ class BaseFileRenderer(LogMixin, BaseRenderer):
         contents_io = io.BytesIO()
         secret_key = request.user.secret_key
         if not secret_key:
-            content = _("{} - The encryption password has not been set - "
-                        "please go to personal information -> file encryption password "
-                        "to set the encryption password").format(request.user.name)
+            content = _(
+                "{} - Encryption password not set - Please go to Personal Settings → Preferences → File Encryption "
+                "Password to set it.").format(request.user.name)
 
             response['Content-Disposition'] = content_disposition.replace(self.format, 'txt')
             contents_io.write(content.encode('utf-8'))
