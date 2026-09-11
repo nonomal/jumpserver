@@ -8,7 +8,7 @@ from assets.models import Node
 from common.utils import get_logger, lazyproperty
 from perms import serializers
 from perms.utils import UserPermNodeUtil
-from .mixin import SelfOrPKUserMixin, RebuildTreeMixin
+from .mixin import SelfOrPKUserMixin
 
 logger = get_logger(__name__)
 
@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-class BaseUserPermedNodesApi(SelfOrPKUserMixin, RebuildTreeMixin, ListAPIView):
+class BaseUserPermedNodesApi(SelfOrPKUserMixin, ListAPIView):
     serializer_class = serializers.NodePermedSerializer
 
     def get_queryset(self):
@@ -39,7 +39,11 @@ class UserAllPermedNodesApi(BaseUserPermedNodesApi):
     """ 用户授权的节点 """
 
     def get_nodes(self):
-        return self.query_node_util.get_whole_tree_nodes()
+        nodes = self.query_node_util.get_whole_tree_nodes()
+        search = self.request.query_params.get('search', '').strip().casefold()
+        if search:
+            nodes = [node for node in nodes if search in node.full_value.casefold()]
+        return nodes
 
 
 class UserPermedNodeChildrenApi(BaseUserPermedNodesApi):

@@ -2,6 +2,7 @@
 #
 import os
 import time
+
 from .base import (
     REDIS_SSL_CA, REDIS_SSL_CERT, REDIS_SSL_KEY, REDIS_SSL_REQUIRED, REDIS_USE_SSL,
     REDIS_PROTOCOL, REDIS_SENTINEL_SERVICE_NAME, REDIS_SENTINELS, REDIS_SENTINEL_PASSWORD,
@@ -30,20 +31,31 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_AUTHENTICATION_CLASSES': (
         # 'rest_framework.authentication.BasicAuthentication',
-        'authentication.backends.drf.AccessTokenAuthentication',
-        'authentication.backends.drf.PrivateTokenAuthentication',
+        'chat_ai.authentication.ChatAIDelegationAuthentication',
         'authentication.backends.drf.ServiceAuthentication',
         'authentication.backends.drf.SignatureAuthentication',
+        'authentication.backends.drf.PrivateTokenAuthentication',
+        'authentication.backends.drf.AccessTokenAuthentication',
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
         'authentication.backends.drf.SessionAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'common.drf.throttling.RateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': CONFIG.THROTTLE_RATES_ANON,
+        'user': CONFIG.THROTTLE_RATES_USER,
+        'service_account': CONFIG.THROTTLE_RATES_SERVICE_ACCOUNT,
+        'file_transfer': CONFIG.THROTTLE_FILE_TRANSFER,
+    },
     'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
+        'common.drf.filters.LookupFilterBackend',
+        'common.drf.filters.SearchFilter',
         'common.drf.filters.RewriteOrderingFilter',
     ),
     'DEFAULT_METADATA_CLASS': 'common.drf.metadata.SimpleMetadataWithFilters',
     'ORDERING_PARAM': "order",
-    'SEARCH_PARAM': "search",
+    'SEARCH_PARAM': "q",
     'DATETIME_FORMAT': '%Y/%m/%d %H:%M:%S %z',
     'DATETIME_INPUT_FORMATS': ['%Y/%m/%d %H:%M:%S %z', 'iso-8601', '%Y-%m-%d %H:%M:%S %z'],
     'DEFAULT_PAGINATION_CLASS': 'jumpserver.rewriting.pagination.MaxLimitOffsetPagination',
@@ -53,18 +65,9 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'JumpServer API Docs',
-    'DESCRIPTION': 'JumpServer Restful api docs',
+    'TITLE': f'{CONFIG.VENDOR} API Docs',
+    'DESCRIPTION': f'{CONFIG.VENDOR} Restful api docs',
     'VERSION': 'v1',
-    'LICENSE': {
-        'name': 'GPLv3 License',
-        'url': 'https://www.gnu.org/licenses/gpl-3.0.html',
-    },
-    'CONTACT': {
-        'name': 'JumpServer',
-        'url': 'https://jumpserver.org',
-        'email': 'support@jumpserver.org',
-    },
     "SERVE_INCLUDE_SCHEMA": False,
     'SERVE_PUBLIC': True,
     'BASE_PATH': '/api/v1/',
@@ -86,7 +89,23 @@ SPECTACULAR_SETTINGS = {
         'jumpserver.views.schema.LabelRelatedFieldExtension',
     ],
     'SECURITY': [{'Bearer': []}],
+    'DISABLE_ERRORS_AND_WARNINGS': True
 }
+
+if CONFIG.VENDOR.lower() == 'jumpserver':
+    SPECTACULAR_SETTINGS.update({
+        'LICENSE': {
+            'name': 'GPLv3 License',
+            'url': 'https://www.gnu.org/licenses/gpl-3.0.html',
+        },
+        'CONTACT': {
+            'name': 'JumpServer',
+            'url': 'https://jumpserver.org',
+            'email': 'support@jumpserver.org',
+        },
+    })
+
+
 # Captcha settings, more see https://django-simple-captcha.readthedocs.io/en/latest/advanced.html
 CAPTCHA_IMAGE_SIZE = (180, 38)
 CAPTCHA_FOREGROUND_COLOR = '#001100'
@@ -107,6 +126,7 @@ BOOTSTRAP3 = {
 REDIS_LAYERS_HOST = {
     'db': CONFIG.REDIS_DB_WS,
 }
+USE_X_FORWARDED_HOST = True
 
 REDIS_LAYERS_SSL_PARAMS = {}
 if REDIS_USE_SSL:
@@ -184,10 +204,11 @@ else:
     }
 CELERY_TIMEZONE = CONFIG.TIME_ZONE
 CELERY_ENABLE_UTC = False
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-CELERY_ACCEPT_CONTENT = ['json', 'pickle']
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_ACCEPT_CONTENT = ['json'] #结果也限定为json
 CELERY_RESULT_EXPIRES = 600
 CELERY_WORKER_TASK_LOG_FORMAT = '%(asctime).19s %(message)s'
 CELERY_WORKER_LOG_FORMAT = '%(asctime).19s %(message)s'
@@ -216,9 +237,24 @@ REDIS_PASSWORD_QUOTE = CONFIG.REDIS_PASSWORD_QUOTE
 DJANGO_REDIS_SCAN_ITERSIZE = 1000
 
 # GM DEVICE
-PIICO_DEVICE_ENABLE = CONFIG.PIICO_DEVICE_ENABLE
-PIICO_DRIVER_PATH = CONFIG.PIICO_DRIVER_PATH
+GM_DEVICE_ENABLE = CONFIG.GM_DEVICE_ENABLE
+GM_VENDOR_NAME = CONFIG.GM_VENDOR_NAME
+GM_DRIVER_PATH = CONFIG.GM_DRIVER_PATH
 
 LEAK_PASSWORD_DB_PATH = CONFIG.LEAK_PASSWORD_DB_PATH
 
 JUMPSERVER_UPTIME = int(time.time())
+
+# OAuth2 Provider settings
+OAUTH2_PROVIDER = {
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['https', 'jms2'],
+    'PKCE_REQUIRED': True,
+    'ACCESS_TOKEN_EXPIRE_SECONDS': CONFIG.OAUTH2_PROVIDER_ACCESS_TOKEN_EXPIRE_SECONDS,
+    'REFRESH_TOKEN_EXPIRE_SECONDS': CONFIG.OAUTH2_PROVIDER_REFRESH_TOKEN_EXPIRE_SECONDS,
+}
+OAUTH2_PROVIDER_CLIENT_REDIRECT_URI = 'jms2://auth/callback'
+OAUTH2_PROVIDER_JUMPSERVER_CLIENT_NAME = 'JumpServer Client'
+
+if CONFIG.DEBUG_DEV:
+    OAUTH2_PROVIDER['ALLOWED_REDIRECT_URI_SCHEMES'].append('http')
+    OAUTH2_PROVIDER_CLIENT_REDIRECT_URI += ' http://127.0.0.1:14876/auth/callback'

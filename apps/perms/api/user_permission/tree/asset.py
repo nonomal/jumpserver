@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from assets.api import SerializeToTreeNodeMixin
 from assets.models import Asset
 from common.utils import get_logger
-from ..mixin import RebuildTreeMixin
 from ..assets import UserAllPermedAssetsApi
 
 logger = get_logger(__name__)
@@ -15,13 +14,10 @@ __all__ = [
 ]
 
 
-class AssetTreeMixin(RebuildTreeMixin, SerializeToTreeNodeMixin):
+class AssetTreeMixin(SerializeToTreeNodeMixin):
     """ 将资产序列化成树节点的结构返回 """
     filter_queryset: callable
     get_queryset: callable
-
-    filterset_fields = ('id', 'name', 'address', 'comment')
-    search_fields = ('name', 'address', 'comment')
 
     def list(self, request, *args, **kwargs):
         assets = self.filter_queryset(self.get_queryset())

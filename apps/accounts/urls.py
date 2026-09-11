@@ -12,6 +12,7 @@ router.register(r'accounts', api.AccountViewSet, 'account')
 router.register(r'virtual-accounts', api.VirtualAccountViewSet, 'virtual-account')
 router.register(r'gathered-accounts', api.GatheredAccountViewSet, 'gathered-account')
 router.register(r'account-secrets', api.AccountSecretsViewSet, 'account-secret')
+router.register(r'personal-asset-credentials', api.PersonalAssetCredentialViewSet,'personal-asset-credential')
 router.register(r'account-templates', api.AccountTemplateViewSet, 'account-template')
 router.register(r'account-template-secrets', api.AccountTemplateSecretsViewSet, 'account-template-secret')
 router.register(r'account-backup-plans', api.BackupAccountViewSet, 'account-backup')
@@ -50,6 +51,24 @@ urlpatterns = [
     path('push-account/<uuid:pk>/nodes/', api.PushAccountNodeAddRemoveApi.as_view(),
          name='push-account-add-or-remove-node'),
     path('push-account/<uuid:pk>/assets/', api.PushAccountAssetsListApi.as_view(), name='push-account-assets'),
+
+    path('gather-account/<uuid:pk>/asset/remove/', api.DiscoverAccountsRemoveAssetApi.as_view(),
+         name='gather-account-remove-asset'),
+    path('gather-account/<uuid:pk>/asset/add/', api.DiscoverAccountsAddAssetApi.as_view(),
+         name='gather-account-add-asset'),
+    path('gather-account/<uuid:pk>/nodes/', api.DiscoverAccountsNodeAddRemoveApi.as_view(),
+         name='gather-account-add-or-remove-node'),
+    path('gather-account/<uuid:pk>/assets/', api.DiscoverAccountsAssetsListApi.as_view(),
+         name='gather-account-assets'),
+
+    path('check-account/<uuid:pk>/asset/remove/', api.CheckAccountRemoveAssetApi.as_view(),
+         name='check-account-remove-asset'),
+    path('check-account/<uuid:pk>/asset/add/', api.CheckAccountAddAssetApi.as_view(),
+         name='check-account-add-asset'),
+    path('check-account/<uuid:pk>/nodes/', api.CheckAccountNodeAddRemoveApi.as_view(),
+         name='check-account-add-or-remove-node'),
+    path('check-account/<uuid:pk>/assets/', api.CheckAccountAssetsListApi.as_view(),
+         name='check-account-assets'),
     path('pam-dashboard/', api.PamDashboardApi.as_view(), name='pam-dashboard'),
     path('change-secret-dashboard/', api.ChangeSecretDashboardApi.as_view(), name='change-secret-dashboard'),
 ]

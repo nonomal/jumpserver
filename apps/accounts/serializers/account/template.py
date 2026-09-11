@@ -2,7 +2,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import AccountTemplate
-from common.serializers import SecretReadableMixin
+from common.serializers import SecretReadableMixin, SecretReadableCheckMixin
 from common.serializers.fields import ObjectRelatedField
 from .base import BaseAccountSerializer
 
@@ -19,7 +19,7 @@ class PasswordRulesSerializer(serializers.Serializer):
 
     @staticmethod
     def get_render_help_text():
-        return _("""length is the length of the password, and the range is 8 to 30.
+        return _("""length is the length of the password, and the range is 8 to 36.
 lowercase indicates whether the password contains lowercase letters, 
 uppercase indicates whether it contains uppercase letters,
 digit indicates whether it contains numbers, and symbol indicates whether it contains special symbols.
@@ -62,10 +62,11 @@ class AccountDetailTemplateSerializer(AccountTemplateSerializer):
         fields = AccountTemplateSerializer.Meta.fields + ['spec_info']
 
 
-class AccountTemplateSecretSerializer(SecretReadableMixin, AccountDetailTemplateSerializer):
+class AccountTemplateSecretSerializer(SecretReadableCheckMixin, SecretReadableMixin, AccountDetailTemplateSerializer):
     class Meta(AccountDetailTemplateSerializer.Meta):
         fields = AccountDetailTemplateSerializer.Meta.fields
         extra_kwargs = {
             **AccountDetailTemplateSerializer.Meta.extra_kwargs,
             'secret': {'write_only': False},
         }
+        secret_fields = ['secret']

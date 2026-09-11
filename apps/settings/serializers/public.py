@@ -12,6 +12,7 @@ class PublicSettingSerializer(serializers.Serializer):
     XPACK_ENABLED = serializers.BooleanField()
     INTERFACE = serializers.DictField()
     LANGUAGES = serializers.ListField()
+    VENDOR = serializers.CharField()
 
 
 class PrivateSettingSerializer(PublicSettingSerializer):
@@ -21,6 +22,7 @@ class PrivateSettingSerializer(PublicSettingSerializer):
     TICKET_AUTHORIZE_DEFAULT_TIME_UNIT = serializers.CharField()
     AUTH_LDAP_SYNC_ORG_IDS = serializers.ListField()
     SECURITY_MAX_IDLE_TIME = serializers.IntegerField()
+    SECURITY_DISABLE_VIEW_SECRET = serializers.BooleanField()
     SECURITY_VIEW_AUTH_NEED_MFA = serializers.BooleanField()
     SECURITY_MFA_AUTH = serializers.IntegerField()
     SECURITY_MFA_VERIFY_TTL = serializers.IntegerField()
@@ -71,10 +73,8 @@ class PrivateSettingSerializer(PublicSettingSerializer):
     VAULT_ENABLED = serializers.BooleanField()
     VIRTUAL_APP_ENABLED = serializers.BooleanField()
     CHAT_AI_ENABLED = serializers.BooleanField()
-    CHAT_AI_METHOD = serializers.CharField()
-    CHAT_AI_EMBED_URL = serializers.CharField()
-    CHAT_AI_TYPE = serializers.CharField()
-    GPT_MODEL = serializers.CharField()
+    CHAT_AI_METHOD = serializers.ChoiceField(choices=('api', 'iframe'))
+    CHAT_AI_EMBED_URL = serializers.URLField(allow_blank=True)
     FILE_UPLOAD_SIZE_LIMIT_MB = serializers.IntegerField()
     FTP_FILE_MAX_STORE = serializers.IntegerField()
     LOKI_LOG_ENABLED = serializers.BooleanField()
@@ -85,6 +85,13 @@ class PrivateSettingSerializer(PublicSettingSerializer):
     ASSET_PERMISSION_DEFAULT_EXPIRED_DAYS = serializers.IntegerField()
     PRIVACY_MODE = serializers.BooleanField()
     CHANGE_SECRET_AFTER_SESSION_END = serializers.BooleanField()
+
+    JDMC_ENABLED = serializers.BooleanField()
+    FLOWER_ENABLED = serializers.BooleanField()
+    REMOTE_APP_STORE_URL = serializers.CharField()
+    VENDOR = serializers.CharField()
+
+    AUTH_UKEY = serializers.BooleanField()
 
 
 class ServerInfoSerializer(serializers.Serializer):

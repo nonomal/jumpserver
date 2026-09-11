@@ -5,6 +5,7 @@ import sys
 import uuid
 from collections import defaultdict
 from datetime import timedelta, datetime
+from functools import partial
 
 from celery import current_task
 from django.conf import settings
@@ -18,11 +19,14 @@ __all__ = ["Job", "JobExecution", "JMSPermedInventory"]
 from simple_history.models import HistoricalRecords
 
 from accounts.models import Account
-from acls.models import CommandFilterACL
+from acls.models import CommandFilterACL, DataMaskingRule
+from assets.const import Protocol
 from assets.models import Asset
 from assets.automations.base.manager import SSHTunnelManager
 from common.db.encoder import ModelJSONFieldEncoder
-from ops.ansible import JMSInventory, AdHocRunner, PlaybookRunner, UploadFileRunner
+from ops.ansible import (
+    JMSInventory, AdHocRunner, PlaybookRunner, TaskLogCallback, UploadFileRunner,
+)
 
 """stop all ssh child processes of the given ansible process pid."""
 from ops.ansible.exception import CommandInBlackListException
@@ -32,10 +36,36 @@ from ops.const import Types, RunasPolicies, JobStatus, JobModules
 from ops.utils import merge_nodes_and_assets
 from orgs.mixins.models import JMSOrgBaseModel
 from perms.models import AssetPermission
+from perms.const import ActionChoices
+from perms.utils.asset_perm import PermAssetDetailUtil
 from perms.utils import UserPermAssetUtil
 from terminal.notifications import CommandExecutionAlert
 from terminal.notifications import CommandWarningMessage
 from terminal.const import RiskLevelChoices
+
+
+def check_upload_permission(host, *, user, asset, account, **kwargs):
+    if host.get('error'):
+        return host
+
+    protocols_required = {Protocol.ssh, Protocol.sftp, Protocol.winrm}
+    protocols = set(asset.protocols.values_list('name', flat=True))
+    if not protocols.intersection(protocols_required):
+        host['error'] = _(
+            'Asset ({asset}) must have at least one of the following protocols added: SSH, SFTP, or WinRM'
+        ).format(asset=asset.name)
+        return host
+
+    util = PermAssetDetailUtil(user, asset)
+    if not util.check_perm_protocols(protocols_required):
+        host['error'] = _(
+            'Asset ({asset}) authorization is missing SSH, SFTP, or WinRM protocol'
+        ).format(asset=asset.name)
+    elif not util.check_perm_actions(account.username, [ActionChoices.upload.value]):
+        host['error'] = _(
+            'Asset ({asset}) authorization lacks upload permissions'
+        ).format(asset=asset.name)
+    return host
 
 
 def get_parent_keys(key, include_self=True):
@@ -88,7 +118,7 @@ class JMSPermedInventory(JMSInventory):
             host['login_user'] = account.username
             host['login_password'] = account.secret
             host['login_db'] = asset.spec_info.get('db_name', '')
-            host['ansible_python_interpreter'] = sys.executable
+            host['ansible_python_interpreter'] = '{{ local_python_interpreter }}'
             if gateway:
                 host['jms_gateway'] = {
                     'address': gateway.address, 'port': gateway.port,
@@ -143,10 +173,17 @@ class JMSPermedInventory(JMSInventory):
         return mapper
 
 
+class JobHistoricalRecords(HistoricalRecords):
+    def create_history_model(self, model, inherited):
+        history_model = super().create_history_model(model, inherited)
+        history_model.__module__ = model.__module__
+        return history_model
+
+
 class Job(JMSOrgBaseModel, PeriodTaskModelMixin):
     name = models.CharField(max_length=128, null=True, verbose_name=_('Name'))
     instant = models.BooleanField(default=False)
-    args = models.CharField(max_length=8192, default='', verbose_name=_('Args'), null=True, blank=True)
+    args = models.TextField(max_length=65536, default='', verbose_name=_('Args'), null=True, blank=True)
     module = models.CharField(max_length=128, choices=JobModules.choices, default=JobModules.shell,
                               verbose_name=_('Module'), null=True)
     chdir = models.CharField(default="", max_length=1024, verbose_name=_('Run dir'), null=True, blank=True)
@@ -164,7 +201,7 @@ class Job(JMSOrgBaseModel, PeriodTaskModelMixin):
                                     verbose_name=_('Run as policy'))
     comment = models.CharField(max_length=1024, default='', verbose_name=_('Comment'), null=True, blank=True)
     version = models.IntegerField(default=0)
-    history = HistoricalRecords()
+    history = JobHistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -202,8 +239,11 @@ class Job(JMSOrgBaseModel, PeriodTaskModelMixin):
 
     @property
     def inventory(self):
+        host_callback = None
+        if self.type == Types.upload_file:
+            host_callback = partial(check_upload_permission, user=self.creator)
         return JMSPermedInventory(self.assets.all(), self.nodes.all(),
-                                  self.runas_policy, self.runas,
+                                  self.runas_policy, self.runas, host_callback=host_callback,
                                   user=self.creator, module=self.module)
 
     @property
@@ -241,7 +281,7 @@ class JobExecution(JMSOrgBaseModel):
     date_start = models.DateTimeField(null=True, verbose_name=_('Date start'), db_index=True)
     date_finished = models.DateTimeField(null=True, verbose_name=_("Date finished"))
 
-    material = models.CharField(max_length=8192, default='', verbose_name=_('Material'), null=True, blank=True)
+    material = models.TextField(default='', verbose_name=_('Material'), null=True, blank=True)
     job_type = models.CharField(max_length=128, choices=Types.choices, default=Types.adhoc,
                                 verbose_name=_("Material Type"))
 
@@ -516,12 +556,32 @@ class JobExecution(JMSOrgBaseModel):
         if error_assets_count > 0:
             raise Exception("You do not have access rights to {} assets".format(error_assets_count))
 
-    def before_start(self):
-        self.check_assets_perms()
+    def check_data_masking_rules_acls(self):
+        for asset in self.current_job.assets.all():
+            acls = DataMaskingRule.filter_queryset(
+                user=self.creator,
+                asset=asset,
+                is_active=True,
+                account_username=self.current_job.runas
+            )
+            protocols = [p.name for p in asset.protocols.all()]
+            if acls and set(protocols) & {'mariadb', 'mysql', 'postgresql', 'sqlserver'}:
+                print(
+                    "\033[31mcommand \'{}\' on asset {}({}) and account {} is rejected by data masking rules acl {}\033[0m"
+                    .format(self.current_job.args, asset.name, asset.address, self.current_job.runas, list(acls))
+                )
+                raise Exception("Command is rejected by data masking rules ACL")
+
+    def check_assets_acls(self):
+        self.check_data_masking_rules_acls()
         if self.current_job.type == 'playbook':
             self.check_danger_keywords()
         if self.current_job.type == 'adhoc':
             self.check_command_acl()
+
+    def before_start(self):
+        self.check_assets_perms()
+        self.check_assets_acls()
 
     def start(self, **kwargs):
         self.date_start = timezone.now()
@@ -530,6 +590,7 @@ class JobExecution(JMSOrgBaseModel):
         self.before_start()
 
         runner = self.get_runner()
+        runner.cb = TaskLogCallback(self.task_id)
         ssh_tunnel = SSHTunnelManager()
         ssh_tunnel.local_gateway_prepare(runner)
         try:
@@ -543,6 +604,9 @@ class JobExecution(JMSOrgBaseModel):
             logging.error(e, exc_info=True)
             self.set_error(e)
         finally:
+            close_callback = getattr(runner.cb, 'close', None)
+            if close_callback:
+                close_callback()
             ssh_tunnel.local_gateway_clean(runner)
 
     def stop(self):

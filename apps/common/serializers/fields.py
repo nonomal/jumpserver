@@ -8,7 +8,7 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 
 from common.db.fields import TreeChoices, JSONManyToManyField as ModelJSONManyToManyField
-from common.utils import decrypt_password, is_uuid
+from common.utils import decrypt_session_password, is_uuid
 
 __all__ = [
     "ReadableHiddenField",
@@ -18,6 +18,7 @@ __all__ = [
     "BitChoicesField",
     "TreeChoicesField",
     "LabeledMultipleChoiceField",
+    "ListMultipleChoiceField",
     "PhoneField",
     "JSONManyToManyField",
     "LabelRelatedField",
@@ -50,7 +51,7 @@ class EncryptedField(serializers.CharField):
 
     def to_internal_value(self, value):
         value = super().to_internal_value(value)
-        return decrypt_password(value)
+        return decrypt_session_password(value)
 
 
 class LabeledChoiceField(serializers.ChoiceField):
@@ -67,6 +68,17 @@ class LabeledChoiceField(serializers.ChoiceField):
         if isinstance(data, str) and "(" in data and data.endswith(")"):
             data = data.strip(")").split('(')[-1]
         return super(LabeledChoiceField, self).to_internal_value(data)
+
+
+class ListMultipleChoiceField(serializers.MultipleChoiceField):
+
+    def to_representation(self, value):
+        return list(value or [])
+
+    def to_internal_value(self, data):
+        if data is None:
+            return []
+        return list(super().to_internal_value(data))
 
 
 class LabeledMultipleChoiceField(serializers.MultipleChoiceField):
@@ -137,7 +149,14 @@ class LabelRelatedField(serializers.RelatedField):
                 k, v = [x.strip() for x in data.split(":", 1)]
             else:
                 raise serializers.ValidationError(_("Invalid data type"))
-            label, __ = Label.objects.get_or_create(name=k, value=v, defaults={'name': k, 'value': v})
+            from labels.serializers import LabelSerializer
+
+            validated = LabelSerializer.validate_name_value(k, v)
+            label, __ = Label.objects.get_or_create(
+                name=validated['name'],
+                value=validated['value'],
+                defaults=validated,
+            )
         return LabeledResource(label=label)
 
 
@@ -184,25 +203,25 @@ class ObjectRelatedField(serializers.RelatedField):
         """
         为 drf-spectacular 提供 OpenAPI schema
         """
-        # 获取字段的基本信息
-        field_type = 'array' if self.many else 'object'
+        description = getattr(self, 'help_text', '') or ''
+        title = getattr(self, 'label', '') or ''
 
-        if field_type == 'array':
+        if self.many:
             # 如果是多对多关系
             return {
                 'type': 'array',
                 'items': self._get_openapi_item_schema(),
-                'description': getattr(self, 'help_text', ''),
-                'title': getattr(self, 'label', ''),
+                'description': description,
+                'title': title,
             }
-        else:
-            # 如果是一对一关系
-            return {
-                'type': 'object',
-                'properties': self._get_openapi_properties_schema(),
-                'description': getattr(self, 'help_text', ''),
-                'title': getattr(self, 'label', ''),
-            }
+
+        # 单值关系复用完整对象 schema，保留关联对象 id 的必填约束。
+        schema = self._get_openapi_object_schema()
+        schema.update({
+            'description': description,
+            'title': title,
+        })
+        return schema
 
     def _get_openapi_item_schema(self):
         """
@@ -253,10 +272,10 @@ class ObjectRelatedField(serializers.RelatedField):
         """
         将 Django 字段类型映射到 OpenAPI 类型
         """
-        field_type = type(field).__name__
+        field_type = field.get_internal_type()
 
         # 整数类型
-        if 'Integer' in field_type or 'BigInteger' in field_type or 'SmallInteger' in field_type:
+        if field_type in ('AutoField', 'BigAutoField', 'SmallAutoField') or 'Integer' in field_type:
             return 'integer'
         # 浮点数类型
         elif 'Float' in field_type or 'Decimal' in field_type:
@@ -409,7 +428,7 @@ class PhoneField(serializers.CharField):
     def to_representation(self, value):
         try:
             phone = phonenumbers.parse(value, 'CN')
-            value = {'code': '+%s' % phone.country_code, 'phone': phone.national_number}
+            value = {'code': '+%s' % phone.country_code, 'phone': str(phone.national_number)}
         except phonenumbers.NumberParseException:
             value = {'code': '+86', 'phone': value}
         return value
@@ -423,8 +442,13 @@ class JSONManyToManyField(serializers.JSONField):
         if not isinstance(value, dict):
             return {"type": "ids", "ids": []}
         if value.get("type") == "ids":
-            valid_ids = manager.all().values_list("id", flat=True)
-            valid_ids = [str(i) for i in valid_ids]
+            valid_ids = [
+                str(resource_id)
+                for resource_id in manager.all()
+                .order_by()
+                .values_list("id", flat=True)
+                .iterator(chunk_size=2000)
+            ]
             return {"type": "ids", "ids": valid_ids}
         return value
 

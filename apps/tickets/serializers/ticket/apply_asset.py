@@ -17,6 +17,9 @@ apply_help_text = _('Support fuzzy search, and display up to 10 items')
 
 
 class ApplyAssetSerializer(BaseApplyAssetSerializer, TicketApplySerializer):
+    flow_id = serializers.UUIDField(
+        required=True, write_only=True, label=_('Ticket flow')
+    )
     apply_assets = ObjectRelatedField(
         queryset=Asset.objects, many=True, required=False,
         label=_('Apply assets'), help_text=apply_help_text
@@ -31,17 +34,18 @@ class ApplyAssetSerializer(BaseApplyAssetSerializer, TicketApplySerializer):
     class Meta(TicketApplySerializer.Meta):
         model = ApplyAssetTicket
         writeable_fields = [
-            'id', 'title', 'type', 'apply_nodes', 'apply_assets',
+            'id', 'title', 'type', 'flow_id', 'apply_nodes', 'apply_assets',
             'apply_accounts', 'apply_actions', 'apply_date_start',
             'apply_date_expired', 'comment', 'org_id'
         ]
         read_only_fields = TicketApplySerializer.Meta.read_only_fields + ['apply_permission_name', ]
-        fields = TicketApplySerializer.Meta.fields_small + writeable_fields + read_only_fields
+        fields = TicketApplySerializer.Meta.fields_small + \
+                 TicketApplySerializer.Meta.fields_m2m + writeable_fields + read_only_fields
         ticket_extra_kwargs = TicketApplySerializer.Meta.extra_kwargs
         extra_kwargs = {
             'apply_accounts': {'required': False},
-            'apply_date_start': {'allow_null': False},
-            'apply_date_expired': {'allow_null': False},
+            'apply_date_start': {'required': True, 'allow_null': False},
+            'apply_date_expired': {'required': True, 'allow_null': False},
         }
         extra_kwargs.update(ticket_extra_kwargs)
 

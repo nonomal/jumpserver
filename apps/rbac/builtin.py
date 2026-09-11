@@ -9,6 +9,10 @@ _view_all_joined_org_perms = (
     ('orgs', 'organization', 'view', 'alljoinedorg'),
 )
 
+chat_ai_user_perms = (
+    ('chat_ai', 'runtimestore', 'use', 'chatai'),
+)
+
 user_perms = (
     ('rbac', 'menupermission', 'view', 'workbench'),
     ('rbac', 'menupermission', 'view', 'webterminal'),
@@ -23,6 +27,8 @@ user_perms = (
     ("ops", "job", "*", "*"),
     ("ops", "jobexecution", "*", "*"),
     ("ops", "celerytaskexecution", "view", "*"),
+    ("users", "user", "match", "user"),
+    *chat_ai_user_perms,
 )
 
 system_user_perms = (
@@ -61,6 +67,7 @@ app_exclude_perms = [
     ('users', 'user', 'add,delete', 'user'),
     ('orgs', 'org', 'add,delete,change', 'org'),
     ('rbac', '*', '*', '*'),
+    *chat_ai_user_perms,
 ]
 
 need_check = [
@@ -130,7 +137,7 @@ class BuiltinRole:
         '4', gettext_noop('SystemComponent'), Scope.system, app_exclude_perms, 'exclude'
     )
     system_user = PredefineRole(
-        '3', gettext_noop('User'), Scope.system, system_user_perms
+        '3', gettext_noop('SystemUser'), Scope.system, system_user_perms
     )
     org_admin = PredefineRole(
         '5', gettext_noop('OrgAdmin'), Scope.org, []

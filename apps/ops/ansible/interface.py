@@ -1,7 +1,9 @@
-from django.conf import settings
+from socket import gethostbyname, gethostname
+
 from django.utils.functional import LazyObject
 
 from ops.ansible import AnsibleNativeRunner
+from ops.ansible.docker import use_ansible_docker_isolation
 from ops.ansible.runners.base import BaseRunner
 
 __all__ = ['interface']
@@ -15,9 +17,7 @@ class _LazyRunnerInterface(LazyObject):
     @staticmethod
     def make_interface():
         runner_type = AnsibleNativeRunner
-        gateway_host = settings.ANSIBLE_RECEPTOR_GATEWAY_PROXY_HOST \
-            if settings.ANSIBLE_RECEPTOR_GATEWAY_PROXY_HOST else '127.0.0.1'
-        return RunnerInterface(runner_type=runner_type, gateway_proxy_host=gateway_host)
+        return RunnerInterface(runner_type=runner_type, gateway_proxy_host='127.0.0.1')
 
 
 interface = _LazyRunnerInterface()
@@ -31,6 +31,8 @@ class RunnerInterface:
         self._gateway_proxy_host = gateway_proxy_host
 
     def get_gateway_proxy_host(self):
+        if use_ansible_docker_isolation() and self._gateway_proxy_host == '127.0.0.1':
+            return gethostbyname(gethostname())
         return self._gateway_proxy_host
 
     def get_runner_type(self):

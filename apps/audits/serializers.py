@@ -37,7 +37,9 @@ class JobLogSerializer(JobExecutionSerializer):
 class JobsAuditSerializer(JobSerializer):
     summary = serializers.ReadOnlyField(label=_("Summary"))
     crontab = serializers.ReadOnlyField(label=_("Execution cycle"))
-    is_periodic_display = serializers.BooleanField(read_only=True, source='is_periodic')
+    is_periodic_display = serializers.BooleanField(
+        read_only=True, source='is_periodic', label=_("Periodic execution")
+    )
 
     class Meta(JobSerializer.Meta):
         read_only_fields = [
@@ -75,6 +77,7 @@ class UserLoginLogSerializer(serializers.ModelSerializer):
     mfa = LabeledChoiceField(choices=MFAChoices.choices, label=_("MFA"))
     type = LabeledChoiceField(choices=LoginTypeChoices.choices, label=_("Type"))
     status = LabeledChoiceField(choices=LoginStatusChoices.choices, label=_("Status"))
+    city = serializers.ReadOnlyField(source='city_display', label=_("Login city"))
 
     class Meta:
         model = models.UserLoginLog
@@ -125,6 +128,32 @@ class OperateLogSerializer(BulkOrgResourceModelSerializer):
     @staticmethod
     def get_resource(instance) -> str:
         return i18n_trans(instance.resource)
+
+
+class DiffFieldSerializer(serializers.JSONField):
+    def to_file_representation(self, value):
+        row = getattr(self, '_row') or {}
+        attrs = {'diff': value, 'resource_type': row.get('resource_type')}
+        instance = type('OperateLog', (), attrs)
+        return OperateLogStore.convert_diff_friendly(instance)
+
+
+class OperateLogFullSerializer(OperateLogSerializer):
+    diff = DiffFieldSerializer(label=_("Diff"))
+
+    class Meta(OperateLogSerializer.Meta):
+        fields = OperateLogSerializer.Meta.fields + ['diff']
+
+
+class OperateLogSyslogSerializer(OperateLogSerializer):
+    diff = serializers.SerializerMethodField(label=_("Diff"))
+
+    class Meta(OperateLogSerializer.Meta):
+        fields = OperateLogSerializer.Meta.fields + ['diff']
+
+    @staticmethod
+    def get_diff(instance):
+        return OperateLogStore.convert_diff_friendly(instance)
 
 
 class PasswordChangeLogSerializer(serializers.ModelSerializer):
@@ -197,6 +226,7 @@ class UserSessionSerializer(serializers.ModelSerializer):
     user = ObjectRelatedField(required=False, queryset=User.objects, label=_('User'))
     date_expired = serializers.DateTimeField(format="%Y/%m/%d %H:%M:%S", label=_('Date expired'))
     is_current_user_session = serializers.SerializerMethodField()
+    city = serializers.ReadOnlyField(source='city_display', label=_("Login city"))
 
     class Meta:
         model = models.UserSession

@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from accounts.const import SecretType
 from accounts.models import Account
+from acls.const import ActionChoices as ACLActionChoices
 from acls.models import CommandGroup, CommandFilterACL, DataMaskingRule
 from assets.models import Asset, Platform, Gateway, Zone
 from assets.serializers.asset import AssetProtocolsSerializer
@@ -10,9 +11,11 @@ from assets.serializers.platform import PlatformSerializer
 from common.serializers.fields import LabeledChoiceField
 from common.serializers.fields import ObjectRelatedField
 from orgs.mixins.serializers import OrgResourceModelSerializerMixin
+from perms.const import ActionChoices as PermActionChoices
 from perms.serializers.permission import ActionChoicesField
 from users.models import User
 from ..models import ConnectionToken
+from ..utils import get_effective_connect_options
 
 __all__ = [
     'ConnectionTokenSecretSerializer', 'ConnectTokenAppletOptionSerializer',
@@ -147,26 +150,79 @@ class ConnectionTokenSecretSerializer(OrgResourceModelSerializerMixin):
     platform = _ConnectionTokenPlatformSerializer(read_only=True)
     zone = ObjectRelatedField(queryset=Zone.objects, required=False, label=_('Domain'))
     command_filter_acls = _ConnectionTokenCommandFilterACLSerializer(read_only=True, many=True)
+    clipboard_policy = serializers.SerializerMethodField()
     data_masking_rules = _ConnectionTokenDataMaskingRuleSerializer(read_only=True, many=True)
     expire_now = serializers.BooleanField(label=_('Expired now'), write_only=True, default=True)
+    public_key = serializers.CharField(
+        label=_('SSH public key'), write_only=True, required=False,
+        allow_blank=True, max_length=16384,
+    )
     connect_method = _ConnectTokenConnectMethodSerializer(read_only=True, source='connect_method_object')
-    connect_options = serializers.JSONField(read_only=True)
+    connect_options = serializers.SerializerMethodField()
     actions = ActionChoicesField()
     expire_at = serializers.IntegerField()
+    ssh_certificate = serializers.SerializerMethodField()
 
     class Meta:
         model = ConnectionToken
         fields = [
             'id', 'value', 'user', 'asset', 'account',
-            'platform', 'command_filter_acls', 'data_masking_rules', 'protocol',
+            'platform', 'command_filter_acls', 'clipboard_policy', 'data_masking_rules', 'protocol',
             'zone', 'gateway', 'actions', 'expire_at',
-            'from_ticket', 'expire_now', 'connect_method',
-            'connect_options', 'face_monitor_token'
+            'from_ticket', 'expire_now', 'public_key', 'connect_method',
+            'connect_options', 'face_monitor_token', 'ssh_certificate'
         ]
         extra_kwargs = {
             'face_monitor_token': {'read_only': True},
             'value': {'read_only': True},
         }
+
+    @staticmethod
+    def get_ssh_certificate(token):
+        return getattr(token, 'ssh_certificate', None)
+
+    @staticmethod
+    def get_connect_options(token):
+        return get_effective_connect_options(
+            token.connect_options, token.protocol
+        )
+
+    @staticmethod
+    def _get_clipboard_acl_for_operation(token, operation):
+        return next(
+            (acl for acl in token.clipboard_acls if acl.matches_operation(operation)),
+            None,
+        )
+
+    def get_clipboard_policy(self, token):
+        operation_map = {
+            'copy': {
+                'operation': PermActionChoices.copy,
+                'text_limit_field': 'copy_text_limit',
+                'file_size_limit_field': 'download_file_size_limit',
+            },
+            'paste': {
+                'operation': PermActionChoices.paste,
+                'text_limit_field': 'paste_text_limit',
+                'file_size_limit_field': 'upload_file_size_limit',
+            },
+        }
+        policy = {}
+        for name, config in operation_map.items():
+            operation = config['operation']
+            acl = self._get_clipboard_acl_for_operation(token, operation)
+            perm_allowed = PermActionChoices.contains(token.actions, operation)
+            acl_allowed = acl is None or acl.action == ACLActionChoices.accept
+            enabled = perm_allowed and acl_allowed
+            policy[name] = {
+                'enabled': enabled,
+                'action': ACLActionChoices.accept.value if enabled else ACLActionChoices.reject.value,
+                'perm_allowed': perm_allowed,
+                'acl_action': acl.action if acl else None,
+                'text_limit': getattr(acl, config['text_limit_field'], 0) if acl else 0,
+                'file_size_limit': getattr(acl, config['file_size_limit_field'], 0) if acl else 0,
+            }
+        return policy
 
 
 class ConnectTokenAppletOptionSerializer(serializers.Serializer):
@@ -184,3 +240,26 @@ class ConnectTokenVirtualAppOptionSerializer(serializers.Serializer):
     image_name = serializers.CharField(label=_('Image name'))
     image_port = serializers.IntegerField(label=_('Image port'))
     image_protocol = serializers.CharField(label=_('Image protocol'))
+    provider = serializers.SerializerMethodField(label=_('App Provider'))
+
+    @staticmethod
+    def get_provider(instance):
+        provider = instance.get('provider')
+        if provider is None:
+            raise serializers.ValidationError(_('Virtual app provider is required'))
+        if not provider.host:
+            raise serializers.ValidationError(_('Virtual app provider requires an SSH host'))
+        account = provider.select_account()
+        if not account:
+            raise serializers.ValidationError(_('Virtual app provider requires an active SSH account'))
+        gateway = provider.select_gateway()
+        return {
+            'id': str(provider.id),
+            'name': provider.name,
+            'address': provider.address,
+            'host_id': str(provider.host_id) if provider.host_id else None,
+            'load': provider.load,
+            'host': _ConnectionTokenAssetSerializer(provider.host).data,
+            'account': _ConnectionTokenAccountSerializer(account).data,
+            'gateway': _ConnectionTokenGatewaySerializer(gateway).data if gateway else None,
+        }

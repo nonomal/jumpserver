@@ -56,11 +56,11 @@ def check_registered_tasks(*args, **kwargs):
         'users.tasks.check_user_expired_periodic', 'ops.tasks.clean_celery_periodic_tasks',
         'terminal.tasks.delete_terminal_status_period', 'ops.tasks.check_server_performance_period',
         'settings.tasks.ldap.import_ldap_user', 'users.tasks.check_password_expired',
-        'assets.tasks.nodes_amount.check_node_assets_amount_task', 'notifications.notifications.publish_task',
+        'notifications.notifications.publish_task',
         'perms.tasks.check_asset_permission_will_expired',
-        'ops.tasks.create_or_update_registered_periodic_tasks', 'perms.tasks.check_asset_permission_expired',
+        'ops.tasks.create_or_update_registered_periodic_tasks',
         'settings.tasks.ldap.import_ldap_user_periodic', 'users.tasks.check_password_expired_periodic',
-        'common.utils.verify_code.send_sms_async', 'assets.tasks.nodes_amount.check_node_assets_amount_period_task',
+        'common.utils.verify_code.send_sms_async',
         'users.tasks.check_user_expired', 'orgs.tasks.refresh_org_cache_task',
         'terminal.tasks.upload_session_replay_to_external_storage', 'terminal.tasks.clean_orphan_session',
         'terminal.tasks.upload_session_replay_file_to_external_storage',
@@ -115,9 +115,43 @@ def on_celery_task_pre_run(task_id='', kwargs=None, **others):
 
 @signals.task_postrun.connect
 def on_celery_task_post_run(task_id='', state='', **kwargs):
-    CeleryTaskExecution.objects.filter(id=task_id).update(
+    CeleryTaskExecution.objects.filter(id=task_id).exclude(
+        state='REVOKED'
+    ).update(
         state=state, date_finished=timezone.now(), is_finished=True
     )
+    close_old_connections()
+
+
+@receiver(signals.task_revoked)
+def on_celery_task_revoked(request=None, **kwargs):
+    task_id = getattr(request, 'id', None)
+    if not task_id:
+        return
+
+    date_finished = timezone.now()
+    CeleryTaskExecution.objects.filter(id=task_id).update(
+        state='REVOKED',
+        date_finished=date_finished,
+        is_finished=True,
+    )
+
+    # Automation executions use the Celery task id as their primary key.
+    # Besides the execution itself, close pending secret records and release
+    # account queue locks that normal post_run cleanup can no longer handle.
+    try:
+        from accounts.automations.recovery import (
+            finalize_interrupted_executions_for_task,
+        )
+        finalize_interrupted_executions_for_task(
+            task_id,
+            'Task was forcibly terminated before completion; '
+            'the remote secret state may be unknown.',
+        )
+    except Exception:
+        logger.exception(
+            'Finalize revoked account automation failed: task=%s', task_id
+        )
     close_old_connections()
 
 

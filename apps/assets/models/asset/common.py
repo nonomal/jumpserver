@@ -27,6 +27,39 @@ def default_node():
     return []
 
 
+SUPPORTED_ICON_SKINS = {
+    'windows',
+    'windows_ad',
+    'switch',
+    'k8s',
+    'mysql',
+    'redis',
+    'mariadb',
+    'postgresql',
+    'mongodb',
+    'unix',
+    'WebCloud',
+    'private',
+    'sqlserver',
+    'db2',
+    'dameng',
+    'website',
+    'chatgpt',
+    'clickhouse',
+    'shell',
+    'oracle',
+    'database',
+    'cloud',
+    'chrome',
+    'public',
+    'router',
+    'other',
+    'firewall',
+    'general',
+    'file',
+    'linux',
+}
+
 class AssetManager(OrgManager):
     pass
 
@@ -180,6 +213,9 @@ class Asset(NodesRelationMixin, LabeledMixin, AbsConnectivity, JSONFilterMixin, 
         verbose_name=_("Directory service")
     )
     is_active = models.BooleanField(default=True, verbose_name=_('Active'))
+    date_last_login = models.DateTimeField(
+        null=True, blank=True, db_index=True, verbose_name=_('Last login time')
+    )
     gathered_info = models.JSONField(verbose_name=_('Gathered info'), default=dict, blank=True)  # 资产的一些信息，如 硬件信息
     custom_info = models.JSONField(verbose_name=_('Custom info'), default=dict)
 
@@ -378,14 +414,18 @@ class Asset(NodesRelationMixin, LabeledMixin, AbsConnectivity, JSONFilterMixin, 
         fake_node.is_node = False
         return fake_node
 
+    def get_icon_skin(self):
+        if self.category == 'device':
+            return 'switch'
+        platform_type = self.platform.type.lower()
+        if platform_type in SUPPORTED_ICON_SKINS:
+            return platform_type
+        return 'file'
+
     def as_tree_node(self, parent_node):
         from common.tree import TreeNode
-        icon_skin = 'file'
-        platform_type = self.platform.type.lower()
-        if platform_type == 'windows':
-            icon_skin = 'windows'
-        elif platform_type == 'linux':
-            icon_skin = 'linux'
+        
+        icon_skin = self.get_icon_skin()
         data = {
             'id': str(self.id),
             'name': self.name,
@@ -408,8 +448,7 @@ class Asset(NodesRelationMixin, LabeledMixin, AbsConnectivity, JSONFilterMixin, 
         return tree_node
 
     @staticmethod
-    def get_secret_type_assets(asset_ids, secret_type):
-        assets = Asset.objects.filter(id__in=asset_ids)
+    def get_secret_type_assets(assets, secret_type):
         asset_protocol = assets.prefetch_related('protocols').values_list('id', 'protocols__name')
         protocol_secret_types_map = const.Protocol.protocol_secret_types()
         asset_secret_types_mapp = defaultdict(set)

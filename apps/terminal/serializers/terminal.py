@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -6,7 +7,7 @@ from common.serializers.fields import LabeledChoiceField
 from common.utils import get_request_ip, pretty_string, is_uuid
 from users.serializers import ServiceAccountSerializer
 from .. import const
-from ..models import Terminal, Status, Task, CommandStorage, ReplayStorage
+from ..models import Terminal, Status, Task, CommandStorage, ReplayStorage, AppProvider
 
 
 class StatSerializer(serializers.ModelSerializer):
@@ -60,10 +61,6 @@ class TerminalSerializer(BulkModelSerializer):
         fields_fk = ['load', 'stat']
         fields = fields_small + fields_fk
         read_only_fields = ['type', 'date_created']
-        extra_kwargs = {
-            'command_storage': {'required': True, },
-            'replay_storage': {'required': True, },
-        }
 
     @staticmethod
     def get_kwargs_may_be_uuid(value):
@@ -100,10 +97,14 @@ class TaskSerializer(BulkModelSerializer):
 
 class TerminalRegistrationSerializer(serializers.ModelSerializer):
     service_account = ServiceAccountSerializer(read_only=True)
+    provider_id = serializers.UUIDField(required=False, write_only=True)
 
     class Meta:
         model = Terminal
-        fields = ['name', 'type', 'comment', 'service_account', 'remote_addr']
+        fields = [
+            'name', 'type', 'comment', 'service_account', 'remote_addr',
+            'provider_id',
+        ]
         extra_kwargs = {
             'name': {'max_length': 1024},
             'remote_addr': {'read_only': True}
@@ -126,7 +127,9 @@ class TerminalRegistrationSerializer(serializers.ModelSerializer):
         valid = self.service_account.is_valid(raise_exception=True)
         return valid
 
+    @transaction.atomic
     def create(self, validated_data):
+        provider_id = validated_data.pop('provider_id', None)
         instance = super().create(validated_data)
         request = self.context.get('request')
         instance.is_accepted = True
@@ -138,6 +141,14 @@ class TerminalRegistrationSerializer(serializers.ModelSerializer):
         instance.command_storage = CommandStorage.default().name
         instance.replay_storage = ReplayStorage.default().name
         instance.save()
+        if provider_id:
+            try:
+                provider = AppProvider.objects.get(id=provider_id)
+            except AppProvider.DoesNotExist:
+                raise serializers.ValidationError({
+                    'provider_id': _('App provider not found')
+                })
+            provider.bind_terminal(instance)
         return instance
 
 

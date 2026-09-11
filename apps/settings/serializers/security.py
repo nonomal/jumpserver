@@ -2,6 +2,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from acls.serializers.rules import ip_group_help_text, ip_group_child_validator
+from authentication.const import MFAType
+from common.serializers.fields import ListMultipleChoiceField
 
 __all__ = [
     'SecurityPasswordRuleSerializer', 'SecuritySessionSerializer',
@@ -14,6 +16,15 @@ from settings.models import LeakPasswords
 
 
 class SecurityPasswordRuleSerializer(serializers.Serializer):
+    SECURITY_PASSWORD_EXPIRATION_TIME_ADMIN = serializers.IntegerField(
+        min_value=1, max_value=99999, required=True,
+        label=_('Admin password expiration (day)'),
+        help_text=_(
+            'If the admin does not update the password during the time, '
+            'the admin password will expire failure;The password expiration reminder mail will be '
+            'automatic sent to the admin by system within 5 days (daily) before the password expires'
+        )
+    )
     SECURITY_PASSWORD_EXPIRATION_TIME = serializers.IntegerField(
         min_value=1, max_value=99999, required=True,
         label=_('User password expiration (day)'),
@@ -126,6 +137,11 @@ class SecurityAuthSerializer(serializers.Serializer):
         ),
         required=False, label=_("Global MFA")
     )
+    SECURITY_MFA_METHODS = ListMultipleChoiceField(
+        choices=MFAType.choices, required=False,
+        label=_("Allowed MFA methods"),
+        help_text=_("Select one or more MFA methods that users can bind and use")
+    )
     SECURITY_MFA_AUTH_ENABLED_FOR_THIRD_PARTY = serializers.BooleanField(
         required=False, default=True,
         label=_('Third-party login MFA'),
@@ -185,6 +201,11 @@ class SecurityAuthSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs.get('SECURITY_MFA_AUTH') != 1:
             attrs['SECURITY_MFA_IN_LOGIN_PAGE'] = False
+        methods = attrs.get('SECURITY_MFA_METHODS')
+        if methods is not None and len(methods) == 0:
+            raise serializers.ValidationError({
+                'SECURITY_MFA_METHODS': _('Select at least one MFA method')
+            })
         return attrs
 
     def to_representation(self, instance):
@@ -202,25 +223,25 @@ class SecuritySessionSerializer(serializers.Serializer):
         required=True, label=_('Watermark'),
     )
     SECURITY_WATERMARK_SESSION_CONTENT = serializers.CharField(
-        required=False, label=_('Watermark session content'),
+        required=False, label=_('Session content'),
     )
     SECURITY_WATERMARK_CONSOLE_CONTENT = serializers.CharField(
-        required=False, label=_("Watermark console content")
+        required=False, label=_("Console content")
     )
     SECURITY_WATERMARK_COLOR = serializers.CharField(
-        max_length=32, default="", label=_("Color")
+        max_length=32, default="", label=_("Font color")
     )
     SECURITY_WATERMARK_FONT_SIZE = serializers.IntegerField(
-        required=False, label=_('Watermark font size'), min_value=1, max_value=100,
+        required=False, label=_('Font size'), min_value=1, max_value=100,
     )
     SECURITY_WATERMARK_HEIGHT = serializers.IntegerField(
-        required=False, label=_('Watermark height'), default=200
+        required=False, label=_('Height'), default=200
     )
     SECURITY_WATERMARK_WIDTH = serializers.IntegerField(
-        required=False, label=_('Watermark width'), default=200
+        required=False, label=_('Width'), default=200
     )
     SECURITY_WATERMARK_ROTATE = serializers.IntegerField(
-        required=False, label=_('Watermark rotate'), default=45
+        required=False, label=_('Rotate'), default=45
     )
     SECURITY_MAX_IDLE_TIME = serializers.IntegerField(
         min_value=1, max_value=99999, required=False,
@@ -257,6 +278,10 @@ class SecuritySessionSerializer(serializers.Serializer):
 class SecurityBasicSerializer(serializers.Serializer):
     SECURITY_INSECURE_COMMAND = serializers.BooleanField(
         required=False, label=_('Insecure command alert')
+    )
+    SECURITY_ACCOUNT_USERNAME_FORBIDDEN_CHARS = serializers.CharField(
+        required=False, allow_blank=True, label=_('Account username forbidden characters'),
+        max_length=128
     )
     SECURITY_INSECURE_COMMAND_EMAIL_RECEIVER = serializers.CharField(
         max_length=8192, required=False, allow_blank=True, label=_('Email recipient'),

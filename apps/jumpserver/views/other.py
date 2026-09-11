@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 #
+import os
 import re
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
 from django.http import HttpResponseBadRequest
-from django.http import HttpResponseRedirect, JsonResponse, Http404
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View, TemplateView
 from rest_framework.views import APIView
 
 from common.utils import lazyproperty
-from common.views.http import HttpResponseTemporaryRedirect
 
 __all__ = [
-    'LunaView', 'I18NView', 'KokoView', 'WsView',
-    'redirect_format_api', 'redirect_old_apps_view', 'UIView',
+    'LunaView', 'I18NView', 'KokoView', 'WsView', 'UIView',
     'ResourceDownload', 'RedirectConfirm'
 ]
 
@@ -45,30 +43,6 @@ class I18NView(View):
 
 
 api_url_pattern = re.compile(r'^/api/(?P<app>\w+)/(?P<version>v\d)/(?P<extra>.*)$')
-
-
-@csrf_exempt
-def redirect_format_api(request, *args, **kwargs):
-    _path, query = request.path, request.GET.urlencode()
-    matched = api_url_pattern.match(_path)
-    if matched:
-        kwargs = matched.groupdict()
-        kwargs["query"] = query
-        _path = '/api/{version}/{app}/{extra}?{query}'.format(**kwargs).rstrip("?")
-        return HttpResponseTemporaryRedirect(_path)
-    else:
-        return JsonResponse({"msg": "Redirect url failed: {}".format(_path)}, status=404)
-
-
-@csrf_exempt
-def redirect_old_apps_view(request, *args, **kwargs):
-    path = request.get_full_path()
-    if path.find('/core') != -1:
-        raise Http404()
-    if path in ['/docs/', '/docs', '/core/docs/', '/core/docs']:
-        return redirect('/api/docs/')
-    new_path = '/core{}'.format(path)
-    return HttpResponseTemporaryRedirect(new_path)
 
 
 class WsView(APIView):
@@ -99,12 +73,30 @@ class ResourceDownload(TemplateView):
 
     @lazyproperty
     def versions_content(self):
-        return """
+        more_downloads = os.environ.get('MORE_DOWNLOADS_URL', '')
+        default_versions = """
         MRD_VERSION=10.6.7
         OPENSSH_VERSION=v9.4.0.0
         TINKER_VERSION=v0.1.6
-        VIDEO_PLAYER_VERSION=0.6.0
-        CLIENT_VERSION=v3.0.7
+        VIDEO_PLAYER_VERSION=0.5.2
+        CLIENT_VERSION=4.1.6
+        """
+        version_file = os.path.join(settings.DATA_DIR, 'version.txt')
+        try:
+            with open(version_file) as f:
+                versions = f.read()
+        except OSError:
+            versions = default_versions
+
+        client_version = os.environ.get('CLIENT_VERSION', '')
+        client_version_override = (
+            f'CLIENT_VERSION={client_version}' if client_version else ''
+        )
+        return f"""
+        {versions}
+        {client_version_override}
+        VENDOR={settings.VENDOR}
+        MORE_DOWNLOADS_URL={more_downloads}
         """
 
     def get_meta_json(self):
@@ -115,7 +107,7 @@ class ResourceDownload(TemplateView):
             line = line.strip()
             if not line or line.startswith('#') or '=' not in line:
                 continue
-            key, value = line.split('=')
+            key, value = line.split('=', 1)
             meta[key] = value
         return meta
 
@@ -128,7 +120,8 @@ class ResourceDownload(TemplateView):
 
 def csrf_failure(request, reason=""):
     from django.shortcuts import reverse
-    login_url = reverse('authentication:login') + '?csrf_failure=1&admin=1'
+    reason_type = 'cookie' if reason.startswith('CSRF') else 'origin'
+    login_url = reverse('authentication:login') + f'?csrf_failure=1&admin=1&csrf_reason={reason_type}'
     return redirect(login_url)
 
 
@@ -145,9 +138,12 @@ class RedirectConfirm(TemplateView):
     def is_valid_url(url):
         if not url:
             return False
-        parsed = urlparse(url)
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return False
         if not parsed.scheme or not parsed.netloc:
             return False
-        if parsed.scheme not in ['http', 'https']:
+        if parsed.scheme not in ['http', 'https', 'jms2']:
             return False
         return True

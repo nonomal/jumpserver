@@ -1,21 +1,87 @@
+import re
 import uuid
+from ipaddress import ip_network
+from urllib.parse import urlsplit
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.utils import timezone
+from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from common.serializers.fields import EncryptedField
 from common.utils import date_expired_default
+from ops.ansible.docker import ANSIBLE_EE_IMAGE
 
 __all__ = [
     'AnnouncementSettingSerializer', 'OpsSettingSerializer', 'VaultSettingSerializer',
-    'HashicorpKVSerializer', 'AzureKVSerializer', 'TicketSettingSerializer',
+    'OpenBaoSerializer', 'HashicorpKVSerializer', 'AzureKVSerializer', 'TicketSettingSerializer',
     'ChatAISettingSerializer', 'VirtualAppSerializer', 'AmazonSMSerializer',
+    'SSHCAOpenBaoSerializer',
 ]
 
-from settings.const import (
-    ChatAITypeChoices, GPTModelChoices, DeepSeekModelChoices, ChatAIMethodChoices
-)
+ANSIBLE_DOCKER_HELP_TEXT = lazy(
+    lambda: _(
+        'Run Ansible jobs in the Docker execution environment (%(image)s). '
+        'To run jobs locally instead, disable "Docker isolation for Ansible" under '
+        'System Settings > Feature Settings > Job Center. '
+        'If the image is missing, run this command on the Ansible worker: '
+        'docker pull %(image)s'
+    ) % {'image': ANSIBLE_EE_IMAGE},
+    str,
+)()
+
+
+def validate_chat_ai_base_url(value):
+    message = _('Enter a valid HTTP or HTTPS URL.')
+    if not value.isascii():
+        raise ValidationError(message)
+    URLValidator(schemes=['http', 'https'], message=message)(value)
+
+
+def validate_ssh_ca_openbao_address(value):
+    try:
+        parsed = urlsplit(value)
+        parsed.port
+    except ValueError:
+        parsed = None
+
+    hostname = parsed.hostname if parsed else ''
+    valid = (
+        value.isascii() and all(0x21 <= ord(char) <= 0x7e for char in value) and
+        parsed and parsed.scheme in ('http', 'https') and hostname and
+        not parsed.query and not parsed.fragment
+    )
+    if valid:
+        try:
+            URLValidator(schemes=('http', 'https'))(value)
+            return
+        except ValidationError:
+            # Django rejects single-label service names such as the Docker
+            # hostname in http://openbao:8200. They are valid internal targets.
+            valid = (
+                '.' not in hostname and ':' not in hostname and
+                re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', hostname)
+            )
+            if valid:
+                return
+
+    raise serializers.ValidationError(_('address invalid: `{}`').format(value))
+
+
+def validate_ssh_ca_source_addresses(value):
+    for cidr in value.split(','):
+        cidr = cidr.strip()
+        try:
+            if '/' not in cidr:
+                raise ValueError
+            ip_network(cidr, strict=False)
+        except ValueError:
+            raise serializers.ValidationError(
+                _('IP address invalid: `{}`').format(cidr or value)
+            )
 
 
 class AnnouncementSerializer(serializers.Serializer):
@@ -48,11 +114,9 @@ class AnnouncementSettingSerializer(serializers.Serializer):
 
 class BaseVaultSettingSerializer(serializers.Serializer):
 
-    def validate(self, data):
+    def post_save(self):
         from accounts.signal_handlers import vault_pub_sub
-        data = super().validate(data)
         vault_pub_sub.publish('vault')
-        return data
 
 
 class VaultSettingSerializer(BaseVaultSettingSerializer, serializers.Serializer):
@@ -74,6 +138,57 @@ class VaultSettingSerializer(BaseVaultSettingSerializer, serializers.Serializer)
             'If the value reaches or exceeds 999 (default), '
             'no historical account deletion will be performed'
         )
+    )
+
+
+class OpenBaoSerializer(BaseVaultSettingSerializer, serializers.Serializer):
+    PREFIX_TITLE = _('OpenBao')
+    VAULT_OPENBAO_ADDR = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('OpenBao address')
+    )
+    VAULT_OPENBAO_TOKEN = EncryptedField(
+        max_length=4096, allow_blank=True, required=False, label=_('Token'), default=''
+    )
+    VAULT_OPENBAO_MOUNT_POINT = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('Mount Point')
+    )
+    VAULT_OPENBAO_TIMEOUT = serializers.IntegerField(
+        max_value=120, min_value=1, required=False, label=_('Timeout')
+    )
+
+
+class SSHCAOpenBaoSerializer(serializers.Serializer):
+    PREFIX_TITLE = _('OpenBao SSH CA')
+
+    SSH_CA_ENABLED = serializers.BooleanField(required=False, label=_('Enabled'))
+    SSH_CA_OPENBAO_ADDR = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('OpenBao address'),
+        validators=[validate_ssh_ca_openbao_address]
+    )
+    SSH_CA_OPENBAO_TOKEN = EncryptedField(
+        max_length=4096, allow_blank=True, required=False, label=_('Token'), default=''
+    )
+    SSH_CA_OPENBAO_MOUNT_POINT = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('Mount Point')
+    )
+    SSH_CA_OPENBAO_ROLE = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('Role')
+    )
+    SSH_CA_OPENBAO_TTL = serializers.IntegerField(
+        max_value=3600, min_value=30, required=False,
+        label=_('Certificate validity (seconds)')
+    )
+    SSH_CA_OPENBAO_TIMEOUT = serializers.IntegerField(
+        max_value=120, min_value=1, required=False, label=_('Timeout')
+    )
+    SSH_CA_OPENBAO_VERIFY_TLS = serializers.BooleanField(
+        required=False, label=_('Verify TLS certificate')
+    )
+    SSH_CA_OPENBAO_SOURCE_ADDRESS = serializers.CharField(
+        max_length=1024, allow_blank=True, required=False,
+        label=_('Allowed source addresses'),
+        help_text=_('Comma-separated CIDRs seen by the target SSH server'),
+        validators=[validate_ssh_ca_source_addresses]
     )
 
 
@@ -127,47 +242,53 @@ class ChatAISettingSerializer(serializers.Serializer):
         required=False, label=_('Chat AI')
     )
     CHAT_AI_METHOD = serializers.ChoiceField(
-        default=ChatAIMethodChoices.api, choices=ChatAIMethodChoices.choices,
-        label=_("Method"), required=False,
+        choices=(('api', _('Built-in API')), ('iframe', _('iframe embed'))),
+        required=False, label=_('Method'),
     )
-    CHAT_AI_EMBED_URL = serializers.CharField(
+    CHAT_AI_EMBED_URL = serializers.URLField(
+        allow_blank=True, required=False, label=_('iframe URL'),
+        help_text=_('The page URL loaded in the isolated AI assistant iframe.'),
+        validators=[URLValidator(schemes=('http', 'https'))],
+    )
+    CHAT_AI_BASE_URL = serializers.CharField(
         allow_blank=True, required=False, label=_('Base URL'),
-        help_text=_('The base URL of the Chat service.')
+        validators=[validate_chat_ai_base_url],
+        help_text=_('OpenAI-compatible API base URL, usually ending in /v1.')
     )
-    CHAT_AI_TYPE = serializers.ChoiceField(
-        default=ChatAITypeChoices.gpt, choices=ChatAITypeChoices.choices,
-        label=_("Types"), required=False,
-    )
-    GPT_BASE_URL = serializers.CharField(
-        allow_blank=True, required=False, label=_('Base URL'),
-        help_text=_('The base URL of the Chat service.')
-    )
-    GPT_API_KEY = EncryptedField(
+    CHAT_AI_API_KEY = EncryptedField(
         allow_blank=True, required=False, label=_('API Key'),
     )
-    GPT_PROXY = serializers.CharField(
+    CHAT_AI_PROXY = serializers.CharField(
         allow_blank=True, required=False, label=_('Proxy'),
-        help_text=_('The proxy server address of the GPT service. For example: http://ip:port')
+        help_text=_('HTTP proxy used to reach the model provider. For example: http://ip:port')
     )
-    GPT_MODEL = serializers.ChoiceField(
-        default=GPTModelChoices.gpt_4o_mini, choices=GPTModelChoices.choices,
-        label=_("GPT Model"), required=False,
+    CHAT_AI_MODEL = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, label=_('Model'),
+        help_text=_('Discover models from the provider or enter a model ID manually.')
     )
-    DEEPSEEK_BASE_URL = serializers.CharField(
-        allow_blank=True, required=False, label=_('Base URL'),
-        help_text=_('The base URL of the Chat service.')
-    )
-    DEEPSEEK_API_KEY = EncryptedField(
-        allow_blank=True, required=False, label=_('API Key'),
-    )
-    DEEPSEEK_PROXY = serializers.CharField(
-        allow_blank=True, required=False, label=_('Proxy'),
-        help_text=_('The proxy server address of the GPT service. For example: http://ip:port')
-    )
-    DEEPSEEK_MODEL = serializers.ChoiceField(
-        default=DeepSeekModelChoices.deepseek_chat, choices=DeepSeekModelChoices.choices,
-        label=_("DeepSeek Model"), required=False,
-    )
+
+    def validate(self, attrs):
+        enabled = attrs.get('CHAT_AI_ENABLED', settings.CHAT_AI_ENABLED)
+        method = attrs.get('CHAT_AI_METHOD', settings.CHAT_AI_METHOD)
+        if not enabled:
+            return attrs
+
+        field_name = (
+            'CHAT_AI_EMBED_URL' if method == 'iframe' else 'CHAT_AI_BASE_URL'
+        )
+        value = attrs.get(field_name, getattr(settings, field_name))
+        if not str(value or '').strip():
+            raise serializers.ValidationError({
+                field_name: self.fields[field_name].error_messages['blank']
+            })
+        if field_name not in attrs:
+            try:
+                self.fields[field_name].run_validation(value)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({
+                    field_name: exc.detail
+                }) from exc
+        return attrs
 
 
 class TicketSettingSerializer(serializers.Serializer):
@@ -193,8 +314,13 @@ class OpsSettingSerializer(serializers.Serializer):
     PREFIX_TITLE = _('Feature')
 
     SECURITY_COMMAND_EXECUTION = serializers.BooleanField(
-        required=False, label=_('Adhoc command'),
-        help_text=_('Allow users to execute batch commands in the Workbench - Job Center - Adhoc')
+        required=False, label=_('Job Center'),
+        help_text=_('Allow users to use the Job Center to execute jobs')
+    )
+    ANSIBLE_DOCKER_ENABLED = serializers.BooleanField(
+        required=False,
+        label=_('Docker isolation for Ansible'),
+        help_text=ANSIBLE_DOCKER_HELP_TEXT,
     )
     SECURITY_COMMAND_BLACKLIST = serializers.ListField(
         child=serializers.CharField(max_length=1024),

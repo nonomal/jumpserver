@@ -40,8 +40,17 @@ class DeployOptionsSerializer(serializers.Serializer):
         If the release machine and the Core service are on the same network segment, 
         it is recommended to fill in the intranet address, otherwise fill in the current site URL 
         <br> 
-        eg: https://172.16.10.110 or https://dev.jumpserver.com
+        eg: https://172.16.10.110 or https://dev.example.com
         """)
+    )
+    WEB_APPLET_RECORDING_ENABLED = serializers.BooleanField(
+        default=False, label=_('Web applet recording'),
+        help_text=_('Enable an additional Web recording through Koko. RDP recording is retained.'),
+    )
+    WEB_PROXY_URL = serializers.RegexField(
+        regex=r'^http://(?:[a-zA-Z0-9.-]+|\[[a-fA-F0-9:]+\])(?::[0-9]{1,5})?/?$',
+        default='', allow_blank=True, max_length=1024, label=_('Koko Web Proxy'),
+        help_text=_('HTTP proxy address reachable from this host. Required only when Web applet recording is enabled.'),
     )
     IGNORE_VERIFY_CERTS = serializers.BooleanField(default=True, label=_("Ignore Certificate Verification"))
     RDS_Licensing = serializers.BooleanField(
@@ -49,7 +58,7 @@ class DeployOptionsSerializer(serializers.Serializer):
         help_text=_(
             'If not exist, the RDS will be in trial mode, and the trial period is 120 days. <a '
             'href="https://learn.microsoft.com/en-us/windows-server/remote/remote-desktop-services/rds-client-access'
-            '-license">Detail</a>'
+            '-license" target="_blank">Detail</a>'
         )
     )
     RDS_LicenseServer = serializers.CharField(default='127.0.0.1', label=_('RDS License Server'), max_length=1024)
@@ -75,6 +84,12 @@ class DeployOptionsSerializer(serializers.Serializer):
             'log off the session immediately).'
         )
     )
+
+
+    def validate(self, attrs):
+        if attrs.get('WEB_APPLET_RECORDING_ENABLED') and not attrs.get('WEB_PROXY_URL'):
+            raise serializers.ValidationError({'WEB_PROXY_URL': _('Required when Web applet recording is enabled.')})
+        return attrs
 
 
 class AppletHostSerializer(HostSerializer):

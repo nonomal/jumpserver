@@ -7,7 +7,7 @@ from django.utils.functional import LazyObject
 from django.utils.translation import gettext_noop
 
 from accounts.backends import vault_client, refresh_vault_client
-from accounts.const import Source
+from accounts.const import SecretType, Source
 from audits.const import ActivityChoices
 from audits.signal_handlers import create_activities
 from common.decorators import merge_delay_run
@@ -15,7 +15,7 @@ from common.signals import django_ready
 from common.utils import get_logger, i18n_fmt
 from common.utils.connection import RedisPubSub
 from .exceptions import VaultException
-from .models import Account, AccountTemplate
+from .models import Account, AccountTemplate, PersonalAssetCredential
 from .tasks.push_account import push_accounts_to_assets_task
 
 logger = get_logger(__name__)
@@ -73,25 +73,34 @@ class VaultSignalHandler(object):
 
     @staticmethod
     def save_to_vault(sender, instance, created, **kwargs):
+        if instance.secret_type == SecretType.SSH_CERTIFICATE:
+            return
+        if getattr(instance, 'skip_vault_when_saving', False):
+            return
         try:
             if created:
                 vault_client.create(instance)
             else:
                 vault_client.update(instance)
         except Exception as e:
-            logger.error('Vault save failed: {}'.format(e))
+            logger.exception('Vault save failed: %s', e)
             raise VaultException()
 
     @staticmethod
     def delete_to_vault(sender, instance, **kwargs):
+        if instance.secret_type == SecretType.SSH_CERTIFICATE:
+            return
         try:
             vault_client.delete(instance)
         except Exception as e:
-            logger.error('Vault delete failed: {}'.format(e))
+            logger.exception('Vault delete failed: %s', e)
             raise VaultException()
 
 
-for model in (Account, AccountTemplate, Account.history.model):
+for model in (
+        Account, AccountTemplate, Account.history.model,
+        PersonalAssetCredential,
+):
     post_save.connect(VaultSignalHandler.save_to_vault, sender=model)
     post_delete.connect(VaultSignalHandler.delete_to_vault, sender=model)
 

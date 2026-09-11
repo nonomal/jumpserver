@@ -1,33 +1,28 @@
+from django.contrib.auth import logout as auth_logout
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_cas_ng.views import LoginView
 
-from authentication.backends.base import BaseAuthCallbackClientView
-from common.utils import FlashMessageUtil
-from .backends import CASUserDoesNotExist
+from authentication.views.mixins import FlashMessageMixin
 
 __all__ = ['LoginView']
 
 
-class CASLoginView(LoginView):
+class CASLoginView(LoginView, FlashMessageMixin):
     def get(self, request):
         try:
             resp = super().get(request)
-            return resp
         except PermissionDenied:
-            return HttpResponseRedirect('/')
-        except CASUserDoesNotExist as e:
-            message_data = {
-                'title': _('User does not exist: {}').format(e),
-                'error': _(
-                    'CAS login was successful, but no corresponding local user was found in the system, and automatic '
-                    'user creation is disabled in the CAS authentication configuration. Login failed.'),
-                'interval': 10,
-                'redirect_url': '/',
-            }
-            return FlashMessageUtil.gen_and_redirect_to(message_data)
-
-
-class CASCallbackClientView(BaseAuthCallbackClientView):
-    pass
+            resp = HttpResponseRedirect('/')
+        error_message = getattr(request, 'error_message', '')
+        if error_message:
+            auth_logout(request)
+            redirect_url = reverse('authentication:login') + '?admin=1'
+            response = self.get_failed_response(
+                redirect_url, title=_('CAS Error'), msg=error_message
+            )
+            return response
+        else:
+            return resp

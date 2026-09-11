@@ -1,6 +1,7 @@
 # ~*~ coding: utf-8 ~*~
 from collections import defaultdict
 
+from django.core.cache import cache
 from django.utils.translation import gettext as _
 from rest_framework import generics
 from rest_framework.decorators import action
@@ -10,7 +11,7 @@ from rest_framework_bulk.generics import BulkModelViewSet
 
 from common.api import CommonApiMixin, SuggestionMixin
 from common.drf.filters import AttrRulesFilterBackend
-from common.utils import get_logger, is_uuid
+from common.utils import get_logger
 from orgs.utils import current_org, tmp_to_root_org
 from rbac.models import Role, RoleBinding
 from rbac.permissions import RBACPermission
@@ -25,7 +26,7 @@ from ..permissions import UserObjectPermission
 from ..serializers import (
     UserSerializer, MiniUserSerializer, InviteSerializer, UserRetrieveSerializer
 )
-from ..signals import post_user_create
+from ..signals import post_user_create, post_user_update
 
 logger = get_logger(__name__)
 __all__ = [
@@ -37,12 +38,12 @@ __all__ = [
 class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelViewSet):
     filterset_class = UserFilter
     extra_filter_backends = [AttrRulesFilterBackend]
-    search_fields = ('username', 'email', 'name')
+    search_fields = ('username', 'name')
     permission_classes = [RBACPermission, UserObjectPermission]
     serializer_classes = {
         'default': UserSerializer,
-        'suggestion': MiniUserSerializer,
         'invite': InviteSerializer,
+        'match': MiniUserSerializer,
         'retrieve': UserRetrieveSerializer,
     }
     rbac_perms = {
@@ -60,6 +61,8 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
         return True
 
     def perform_destroy(self, instance):
+        if instance.username == self.request.user.username:
+            raise PermissionDenied(_("You cannot delete yourself. Please disable it instead."))
         if instance.username == 'admin':
             raise PermissionDenied(_("Cannot delete the admin user. Please disable it instead."))
         super().perform_destroy(instance)
@@ -73,9 +76,14 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
         """重写 get_serializer, 用于设置用户的角色缓存
         放到 paginate_queryset 里面会导致 导出有问题, 因为导出的时候，没有 pager
         """
-        if len(args) == 1 and kwargs.get('many'):
+        if self.request.method.lower() in ['get'] \
+            and self.request.query_params.get('fields_size') not in ['mini'] \
+            and len(args) == 1 \
+            and kwargs.get('many'):
+            # 批量更新一些用户时，args[0] 是全量 queryset 速度极慢，所以只在 get list 的时候设置缓存
             queryset = self.set_users_roles_for_cache(args[0])
-            queryset = self.set_users_orgs_roles(args[0])
+            queryset = self.set_users_orgs_roles(queryset)
+            queryset = self.set_users_login_blocked(queryset)
             args = (queryset,)
         return super().get_serializer(*args, **kwargs)
 
@@ -84,7 +92,7 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
         # Todo: 未来有机会用 SQL 实现
         queryset_list = queryset
         user_ids = [u.id for u in queryset_list]
-        role_bindings = RoleBinding.objects.filter(user__in=user_ids) \
+        role_bindings = RoleBinding.objects.filter(user_id__in=user_ids) \
             .values('user_id', 'role_id', 'scope')
 
         role_mapper = {r.id: r for r in Role.objects.all()}
@@ -110,8 +118,8 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
     def set_users_orgs_roles(queryset):
         user_ids = [u.id for u in queryset]
         rbs = RoleBinding.objects_raw.filter(
-            user__in=user_ids, scope='org'
-        ).prefetch_related('user', 'role', 'org')
+            user_id__in=user_ids, scope='org'
+        ).select_related('role', 'org')
         user_rbs_mapper = defaultdict(set)
         for rb in rbs:
             user_rbs_mapper[rb.user_id].add(rb)
@@ -124,11 +132,38 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
             setattr(u, 'orgs_roles', orgs_roles)
         return queryset
 
+    @staticmethod
+    def set_users_login_blocked(queryset):
+        login_keys = {
+            u.id: LoginBlockUtil.get_user_block_key(u.username)
+            for u in queryset
+        }
+        mfa_keys = {
+            u.id: MFABlockUtils.get_user_block_key(u.username)
+            for u in queryset
+        }
+        if not login_keys:
+            return queryset
+        blocked = cache.get_many([*login_keys.values(), *mfa_keys.values()])
+
+        for u in queryset:
+            is_blocked = bool(
+                blocked.get(login_keys[u.id]) or blocked.get(mfa_keys[u.id])
+            )
+            setattr(u, 'login_blocked', is_blocked)
+        return queryset
+
     def perform_create(self, serializer):
         users = serializer.save()
         if isinstance(users, User):
             users = [users]
         self.send_created_signal(users)
+
+    def perform_bulk(self, serializer):
+        users = serializer.save()
+        if isinstance(users, User):
+            users = [users]
+        self.send_updated_signal(users)
 
     def perform_bulk_update(self, serializer):
         user_ids = [
@@ -161,8 +196,16 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
         if has_self and not request.user.is_superuser:
             error = {"error": _("Can not invite self")}
             return Response(error, status=400)
+
         for user in users:
-            user.org_roles.set(org_roles)
+            if current_org in user.joined_orgs:
+                error = {
+                    "error": _("This user {} is already a member of the organization. No need to invite again").format(
+                        user.username)
+                }
+                return Response(error, status=400)
+            # 追加角色，不清除除原有的角色
+            user.org_roles.add(*org_roles)
         return Response(serializer.data, status=201)
 
     @action(methods=['post'], detail=True)
@@ -185,6 +228,12 @@ class UserViewSet(CommonApiMixin, UserQuerysetMixin, SuggestionMixin, BulkModelV
             users = [users]
         for user in users:
             post_user_create.send(self.__class__, user=user)
+
+    def send_updated_signal(self, users):
+        if not isinstance(users, list):
+            users = [users]
+        for user in users:
+            post_user_update.send(self.__class__, user=user)
 
 
 class UserChangePasswordApi(UserQuerysetMixin, generics.UpdateAPIView):

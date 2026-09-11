@@ -2,7 +2,8 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from common.serializers.fields import EncryptedField, LabeledChoiceField
+from authentication.const import MFAType
+from common.serializers.fields import EncryptedField, LabeledChoiceField, ListMultipleChoiceField
 from common.utils import validate_ssh_public_key
 from .user import UserSerializer
 from ..models import User, MFAMixin
@@ -54,6 +55,15 @@ class UserRoleSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(UserSerializer):
+    # Declared on UserSerializer, so Meta.read_only_fields does not apply.
+    allowed_mfa_types = ListMultipleChoiceField(
+        choices=MFAType.choices,
+        required=False,
+        allow_empty=True,
+        read_only=True,
+        label=_("Allowed MFA types"),
+        help_text=_("Leave empty to inherit the global MFA methods"),
+    )
     public_key_comment = serializers.CharField(
         source='get_public_key_comment', required=False, read_only=True, max_length=128
     )
@@ -68,14 +78,14 @@ class UserProfileSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         read_only_fields = [
             'date_joined', 'last_login', 'created_by', 'source',
-            'receive_backends',
+            'receive_backends', 'has_jdmc', 'allowed_mfa_types',
         ]
         fields_mini = [
             'id', 'name', 'username', 'email',
         ]
         fields = UserSerializer.Meta.fields + [
             'public_key_comment', 'public_key_hash_md5', 'guide_url',
-            "wecom_id", "dingtalk_id", "feishu_id", "slack_id", 'lang'
+            "wecom_id", "dingtalk_id", "feishu_id", "slack_id", 'lang', 'has_jdmc'
         ] + read_only_fields
 
         extra_kwargs = dict(UserSerializer.Meta.extra_kwargs)
@@ -146,7 +156,7 @@ class UserProfileSerializer(UserSerializer):
         return password
 
     def get_lang(self, obj) -> str:
-        return getattr(obj, 'lang', settings.LANGUAGE_CODE)
+        return getattr(obj, 'lang') or settings.LANGUAGE_CODE
 
 
 class UserPKUpdateSerializer(serializers.ModelSerializer):

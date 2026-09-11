@@ -2,8 +2,8 @@ import os
 import shutil
 import subprocess
 import time
-from xml.etree import ElementTree
-from xml.sax import SAXException
+from defusedxml import ElementTree
+from defusedxml.common import DefusedXmlException
 
 import win32api
 
@@ -18,7 +18,6 @@ class AppletApplication(BaseApplication):
         self.path = _default_path
         self.username = self.account.username
         self.password = self.account.secret
-        self.privileged = self.account.privileged
         self.host = self.asset.address
         self.port = self.asset.get_protocol_port(self.protocol)
         if self.tinker_forward:
@@ -53,7 +52,7 @@ class AppletApplication(BaseApplication):
 
     @staticmethod
     def _write_config(config_file, config):
-        with open(config_file, 'w')as f:
+        with open(config_file, 'w') as f:
             for key, value in config.items():
                 f.write(f'{key}={value}\n')
 
@@ -85,7 +84,7 @@ class AppletApplication(BaseApplication):
         driver_yml_file = os.path.join(driver_yml_path, 'drivers.xml')
         try:
             self._merge_driver_xml('./config/drivers.xml', driver_yml_file)
-        except (SAXException, FileNotFoundError):
+        except (DefusedXmlException, FileNotFoundError):
             os.makedirs(driver_yml_path, exist_ok=True)
             shutil.copy('./config/drivers.xml', driver_yml_file)
 
@@ -116,7 +115,7 @@ class AppletApplication(BaseApplication):
                         f'host={self.host}|' \
                         f'port={self.port}|' \
                         f'database={self.db}|' \
-                        f'"user={self.username}"|' \
+                        f'user={self.username}|' \
                         f'password={self.password}|' \
                         f'save=false|' \
                         f'connect=true'
@@ -128,9 +127,10 @@ class AppletApplication(BaseApplication):
         return params_string
 
     def _get_oracle_exec_params(self):
-        if self.privileged:
-            self.username = '%s as sysdba' % self.username
-        return self._get_exec_params()
+        params_string = self._get_exec_params()
+        if self.connect_options.get('use_sysdba') is True:
+            params_string += '|authProp.oracle.logon-as=sysdba'
+        return params_string
 
     def _get_sqlserver_exec_params(self):
         setattr(self, 'driver', 'mssql_jdbc_ms_new')
@@ -148,8 +148,7 @@ class AppletApplication(BaseApplication):
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags = subprocess.CREATE_NEW_CONSOLE | subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = subprocess.SW_HIDE
-        exec_string = '%s -con %s' % (self.path, params)
-        ret = subprocess.Popen(exec_string, startupinfo=startupinfo)
+        ret = subprocess.Popen([self.path, '-con', params], startupinfo=startupinfo)
         self.pid = ret.pid
 
     def wait(self):

@@ -28,6 +28,7 @@ __all__ = ['MFAMixin', 'AuthMixin']
 class MFAMixin:
     mfa_level = 0
     otp_secret_key = ""
+    allowed_mfa_types = []
     MFA_LEVEL_CHOICES = (
         (0, _("Disabled")),
         (1, _("Enabled")),
@@ -80,11 +81,15 @@ class MFAMixin:
 
     @staticmethod
     def get_user_mfa_backends(user):
+        from authentication.mfa.policy import get_allowed_mfa_types
+
         backends = []
+        allowed = get_allowed_mfa_types(user)
         for cls in settings.MFA_BACKENDS:
             cls = import_string(cls)
-            if cls.global_enabled():
-                backends.append(cls(user))
+            if not cls.global_enabled() or cls.name not in allowed:
+                continue
+            backends.append(cls(user))
         return backends
 
     def get_active_mfa_backend_by_type(self, mfa_type):
@@ -113,6 +118,7 @@ class AuthMixin:
     history_passwords: models.Manager
     sect_cache_tpl = "user_sect_{}"
     id: str
+    is_org_admin: bool
 
     @property
     def password_raw(self):
@@ -133,6 +139,8 @@ class AuthMixin:
                 self.date_password_last_updated = timezone.now()
                 post_user_change_password.send(self.__class__, user=self)
             super().set_password(raw_password)  # noqa
+            self._password_changed = True
+            self._jdmc_password_raw = raw_password
 
     def set_ssh_key(self, public_key, private_key, **kwargs):
         if self.can_update_ssh_key():
@@ -160,6 +168,10 @@ class AuthMixin:
     @staticmethod
     def can_use_ssh_key_login():
         return settings.TERMINAL_PUBLIC_KEY_AUTH
+    
+    @staticmethod
+    def can_use_ukey_login():
+        return settings.AUTH_UKEY
 
     def is_history_password(self, password):
         allow_history_password_count = settings.OLD_PASSWORD_HISTORY_LIMIT_COUNT
@@ -213,7 +225,10 @@ class AuthMixin:
 
     @property
     def date_password_expired(self):
-        interval = settings.SECURITY_PASSWORD_EXPIRATION_TIME
+        if self.is_org_admin:
+            interval = settings.SECURITY_PASSWORD_EXPIRATION_TIME_ADMIN
+        else:
+            interval = settings.SECURITY_PASSWORD_EXPIRATION_TIME
         date_expired = self.date_password_last_updated + timezone.timedelta(
             days=int(interval)
         )

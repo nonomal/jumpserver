@@ -9,6 +9,7 @@
 """
 import base64
 import copy
+import errno
 import json
 import logging
 import os
@@ -221,8 +222,16 @@ class Config(dict):
         'ANNOUNCEMENT_ENABLED': True,
         'ANNOUNCEMENT': {},
 
+        'THROTTLE_RATES_ANON': '2048/min',
+        'THROTTLE_RATES_USER': '4096/min',
+        'THROTTLE_RATES_SERVICE_ACCOUNT': '20480/min',
+
+        # 文件上传下载限流 (防止DOS攻击)
+        'THROTTLE_FILE_TRANSFER': '50/hour',
+
         # Security
         'X_FRAME_OPTIONS': 'SAMEORIGIN',
+        'VERIFY_EXTERNAL_SSL': True,
 
         # 未使用的配置
         'CAPTCHA_TEST_MODE': None,
@@ -236,6 +245,7 @@ class Config(dict):
         'CSRF_COOKIE_DOMAIN': None,
         'SESSION_COOKIE_NAME_PREFIX': None,
         'SESSION_COOKIE_AGE': 3600 * 24,
+        'DATA_UPLOAD_MAX_MEMORY_SIZE': 67_117_056,
         'SESSION_EXPIRE_AT_BROWSER_CLOSE': False,
         'VIEW_ASSET_ONLINE_SESSION_INFO': True,
         'LOGIN_URL': reverse_lazy('authentication:login'),
@@ -256,16 +266,49 @@ class Config(dict):
 
         'SMS_CUSTOM_FILE_MD5': '',
 
+        'AUTH_CUSTOM_SSO': False,
+        'AUTH_CUSTOM_SSO_FILE_MD5': '',
+        'AUTH_CUSTOM_SSO_QUERY_PARAMS': 'token',
+
+        'AUTH_UKEY': False,
+        'AUTH_UKEY_VENDOR': 'long_mai',
+        'AUTH_UKEY_ENROLL_ENABLED': True,
+        'AUTH_UKEY_ENROLL_VALIDITY_DAYS': 365,
+        'AUTH_UKEY_CHALLENGE_TTL': 300,
+        'AUTH_UKEY_DEFAULT_PIN': '',
+        'AUTH_UKEY_CA_KEY_CONTENT': '',
+        'AUTH_UKEY_CA_CERT_CONTENT': '',
+        'AUTH_UKEY_CA_KEY_PASS': '',
+
         # 临时密码
         'AUTH_TEMP_TOKEN': False,
 
         # Vault
         'VAULT_ENABLED': False,
-        'VAULT_BACKEND': 'local',
+        'VAULT_BACKEND': 'openbao',
+
+        'VAULT_OPENBAO_ADDR': 'http://openbao:8200',
+        'VAULT_OPENBAO_TOKEN': '',
+        'VAULT_OPENBAO_MOUNT_POINT': 'pam',
+        'VAULT_OPENBAO_TIMEOUT': 10,
+
+        # OpenBao SSH CA uses an independent endpoint and credential so it can
+        # be deployed in a separate security/failure domain from Vault KV.
+        # An empty address keeps backward compatibility with deployments that
+        # previously reused VAULT_OPENBAO_ADDR.
+        'SSH_CA_ENABLED': False,
+        'SSH_CA_OPENBAO_ADDR': '',
+        'SSH_CA_OPENBAO_TOKEN': '',
+        'SSH_CA_OPENBAO_MOUNT_POINT': 'ssh-client-signer',
+        'SSH_CA_OPENBAO_ROLE': 'jumpserver',
+        'SSH_CA_OPENBAO_TTL': 300,
+        'SSH_CA_OPENBAO_TIMEOUT': 10,
+        'SSH_CA_OPENBAO_VERIFY_TLS': True,
+        'SSH_CA_OPENBAO_SOURCE_ADDRESS': '',
 
         'VAULT_HCP_HOST': '',
         'VAULT_HCP_TOKEN': '',
-        'VAULT_HCP_MOUNT_POINT': 'jumpserver',
+        'VAULT_HCP_MOUNT_POINT': 'pam',
 
         'VAULT_AZURE_HOST': '',
         'VAULT_AZURE_CLIENT_ID': '',
@@ -285,15 +328,19 @@ class Config(dict):
         # Auth LDAP settings
         'AUTH_LDAP': False,
         'AUTH_LDAP_SERVER_URI': 'ldap://localhost:389',
-        'AUTH_LDAP_BIND_DN': 'cn=admin,dc=jumpserver,dc=org',
+        'AUTH_LDAP_BIND_DN': 'cn=admin,dc=example,dc=org',
         'AUTH_LDAP_BIND_PASSWORD': '',
-        'AUTH_LDAP_SEARCH_OU': 'ou=tech,dc=jumpserver,dc=org',
+        'AUTH_LDAP_SEARCH_OU': 'ou=tech,dc=example,dc=org',
         'AUTH_LDAP_SEARCH_FILTER': '(cn=%(user)s)',
         'AUTH_LDAP_START_TLS': False,
+        'AUTH_LDAP_CACERT_CONTENT': '',
+        'AUTH_LDAP_CERT_CONTENT': '',
+        'AUTH_LDAP_KEY_CONTENT': '',
         'AUTH_LDAP_USER_ATTR_MAP': {"username": "cn", "name": "sn", "email": "mail"},
         'AUTH_LDAP_CONNECT_TIMEOUT': 10,
         'AUTH_LDAP_STRICT_SYNC': False,
         'AUTH_LDAP_CACHE_TIMEOUT': 0,
+        'AUTH_LDAP_ALWAYS_UPDATE_USER': True,
         'AUTH_LDAP_SEARCH_PAGED_SIZE': 1000,
         'AUTH_LDAP_SYNC_IS_PERIODIC': False,
         'AUTH_LDAP_SYNC_INTERVAL': None,
@@ -306,15 +353,19 @@ class Config(dict):
         # Auth LDAP HA settings
         'AUTH_LDAP_HA': False,
         'AUTH_LDAP_HA_SERVER_URI': 'ldap://localhost:389',
-        'AUTH_LDAP_HA_BIND_DN': 'cn=admin,dc=jumpserver,dc=org',
+        'AUTH_LDAP_HA_BIND_DN': 'cn=admin,dc=example,dc=org',
         'AUTH_LDAP_HA_BIND_PASSWORD': '',
-        'AUTH_LDAP_HA_SEARCH_OU': 'ou=tech,dc=jumpserver,dc=org',
+        'AUTH_LDAP_HA_SEARCH_OU': 'ou=tech,dc=example,dc=org',
         'AUTH_LDAP_HA_SEARCH_FILTER': '(cn=%(user)s)',
         'AUTH_LDAP_HA_START_TLS': False,
+        'AUTH_LDAP_HA_CACERT_CONTENT': '',
+        'AUTH_LDAP_HA_CERT_CONTENT': '',
+        'AUTH_LDAP_HA_KEY_CONTENT': '',
         'AUTH_LDAP_HA_USER_ATTR_MAP': {"username": "cn", "name": "sn", "email": "mail"},
         'AUTH_LDAP_HA_CONNECT_TIMEOUT': 10,
         'AUTH_LDAP_HA_STRICT_SYNC': False,
         'AUTH_LDAP_HA_CACHE_TIMEOUT': 0,
+        'AUTH_LDAP_HA_ALWAYS_UPDATE_USER': True,
         'AUTH_LDAP_HA_SEARCH_PAGED_SIZE': 1000,
         'AUTH_LDAP_HA_SYNC_IS_PERIODIC': False,
         'AUTH_LDAP_HA_SYNC_INTERVAL': None,
@@ -381,7 +432,6 @@ class Config(dict):
         'CAS_USERNAME_ATTRIBUTE': 'cas:user',
         'CAS_APPLY_ATTRIBUTES_TO_USER': False,
         'CAS_RENAME_ATTRIBUTES': {'cas:user': 'username'},
-        'CAS_CREATE_USER': True,
         'CAS_ORG_IDS': [DEFAULT_ID],
 
         'AUTH_SSO': False,
@@ -416,6 +466,7 @@ class Config(dict):
         'AUTH_OAUTH2': False,
         'AUTH_OAUTH2_LOGO_PATH': 'img/login_oauth2_logo.png',
         'AUTH_OAUTH2_PROVIDER': 'OAuth2',
+        'AUTH_OAUTH2_USE_STATE': False,
         'AUTH_OAUTH2_ALWAYS_UPDATE_USER': True,
         'AUTH_OAUTH2_CLIENT_ID': 'client-id',
         'AUTH_OAUTH2_SCOPE': '',
@@ -499,7 +550,29 @@ class Config(dict):
         # 人脸识别
         'FACE_RECOGNITION_ENABLED': False,
         'FACE_RECOGNITION_DISTANCE_THRESHOLD': 0.35,
-        'FACE_RECOGNITION_COSINE_THRESHOLD': 0.95,
+        'FACE_RECOGNITION_COSINE_THRESHOLD': 0.45,
+        'FACE_RECOGNITION_IDENTITY_THRESHOLD': 0.38,
+        'FACE_RECOGNITION_DEVICE': 'auto',
+        'FACE_RECOGNITION_PROVIDERS': [],
+        'FACE_RECOGNITION_DETECTION_SIZE': [640, 640],
+        'FACE_RECOGNITION_MAX_FACES': 4,
+        'FACE_RECOGNITION_MIN_FACE_RATIO': 0.06,
+        'FACE_RECOGNITION_CAPTURE_TIMEOUT': 30,
+        'FACE_RECOGNITION_ENROLLMENT_SAMPLES': 3,
+        'FACE_RECOGNITION_FRAME_MAX_BYTES': 2 * 1024 * 1024,
+        'FACE_RECOGNITION_FRAME_MIN_INTERVAL': 0.18,
+        'FACE_RECOGNITION_DEBUG': False,
+        'FACE_MONITOR_GRACE_SECONDS': 10,
+        'INSIGHTFACE_MODEL_ROOT': '~/.insightface/models',
+        'INSIGHTFACE_MODEL_NAME': 'buffalo_l',
+        'FACE_LIVENESS_MODE': 'motion',
+        'FACE_LIVENESS_THRESHOLD': 0.72,
+        'FACE_LIVENESS_MODEL_PATH': '',
+        'FACE_LIVENESS_LIVE_INDEX': -1,
+        'FACE_LIVENESS_MIN_MOTION': 0.045,
+        'FACE_LIVENESS_MIN_TEXTURE': 0.08,
+        'FACE_LIVENESS_MIN_FACE_SIZE': 96,
+        'FACE_LIVENESS_CHALLENGE_TIMEOUT': 15,
 
         'SMS_ENABLED': False,
         'SMS_BACKEND': '',
@@ -539,12 +612,15 @@ class Config(dict):
 
         # Email
         'EMAIL_PROTOCOL': 'smtp',
+        'EMAIL_CERT_VERIFY_MODE': 'system',
+        'EMAIL_CACERT_CONTENT': '',
         'EMAIL_CUSTOM_USER_CREATED_SUBJECT': _('Create account successfully'),
         'EMAIL_CUSTOM_USER_CREATED_HONORIFIC': _('Hello'),
         'EMAIL_CUSTOM_USER_CREATED_BODY': _('Your account has been created successfully'),
 
         'OTP_VALID_WINDOW': 2,
         'OTP_ISSUER_NAME': 'JumpServer',
+        'OTP_DIGEST': 'sha1',
         'EMAIL_SUFFIX': 'example.com',
 
         # Terminal配置
@@ -570,14 +646,22 @@ class Config(dict):
         'SECURITY_MFA_AUTH': 0,  # 0 不开启 1 全局开启 2 管理员开启
         'SECURITY_MFA_AUTH_ENABLED_FOR_THIRD_PARTY': True,
         'SECURITY_MFA_BY_EMAIL': False,
+        'SECURITY_MFA_METHODS': [
+            'otp', 'sms', 'email', 'face', 'otp_radius', 'passkey', 'mfa_custom'
+        ],
         'SECURITY_COMMAND_EXECUTION': False,
+        'ANSIBLE_DOCKER_ENABLED': True,
         'SECURITY_COMMAND_BLACKLIST': [
             'reboot', 'shutdown', 'poweroff', 'halt', 'dd', 'half', 'top'
         ],
+        # The backslash only escapes the single quote in this Python string; it is not a forbidden character.
+        'SECURITY_ACCOUNT_USERNAME_FORBIDDEN_CHARS': '{[\'"`;|<>',
         'SECURITY_SERVICE_ACCOUNT_REGISTRATION': 'auto',
         'SECURITY_VIEW_AUTH_NEED_MFA': True,
+        'SECURITY_DISABLE_VIEW_SECRET': False,
         'SECURITY_MAX_IDLE_TIME': 30,
         'SECURITY_MAX_SESSION_TIME': 24,
+        'SECURITY_PASSWORD_EXPIRATION_TIME_ADMIN': 9999,
         'SECURITY_PASSWORD_EXPIRATION_TIME': 9999,
         'SECURITY_EXPIRED_TOKEN_RECORD_KEEP_DAYS': 180,
         'SECURITY_PASSWORD_MIN_LENGTH': 6,
@@ -627,15 +711,51 @@ class Config(dict):
         'HTTP_LISTEN_PORT': 8080,
         'WS_LISTEN_PORT': 8070,
         'CELERY_WORKER_COUNT': 10,
+        # Per Ansible batch. Prevent a blocked remote operation from occupying
+        # a Celery thread forever. Set to 0 to disable.
+        'ANSIBLE_RUNNER_JOB_TIMEOUT': 1800,
+        'ANSIBLE_RUNNER_IDLE_TIMEOUT': 900,
+        # Log hosts that have not returned from their current Ansible task.
+        # Cap each host action first, then the complete automation across all
+        # 80-host batches. An explicit YAML task timeout takes precedence.
+        'ANSIBLE_STALL_LOG_INTERVAL': 60,
+        'ANSIBLE_AUTOMATION_TASK_TIMEOUT': 300,
+        'ANSIBLE_AUTOMATION_TOTAL_TIMEOUT': 21600,
+        # Bound SSH gateway TCP connect, handshake and authentication.
+        # Set to 0 to retain sshtunnel's built-in timeout behavior.
+        'SSH_GATEWAY_CONNECT_TIMEOUT': 30,
+        # Emit redacted, structured diagnostics from remote_client. Intended
+        # for temporary troubleshooting only.
+        'JMS_REMOTE_CLIENT_DEBUG': False,
 
         'SYSLOG_ADDR': '',  # '192.168.0.1:514'
         'SYSLOG_FACILITY': 'user',
         'SYSLOG_SOCKTYPE': 2,
 
         'PERM_EXPIRED_CHECK_PERIODIC': 60 * 60,
+        'PERM_EXPIRED_NOTICE_DAYS': 3,
+        'USER_EXPIRED_FIRST_NOTICE_DAYS': 5,
+        'USER_EXPIRED_DAILY_NOTICE_DAYS': 5,
+        'PERM_EXPIRED_FIRST_NOTICE_DAYS': 3,
+        'PERM_EXPIRED_DAILY_NOTICE_DAYS': 3,
         'PERM_TREE_REGEN_INTERVAL': 1,
         'FLOWER_URL': "127.0.0.1:5555",
         'LANGUAGE_CODE': 'en',
+        # Luna user preference defaults
+        'LUNA_DEFAULT_IS_ASYNC_ASSET_TREE': True,
+        'LUNA_DEFAULT_CONNECT_DEFAULT_OPEN_METHOD': 'current',
+        'LUNA_DEFAULT_THEMES': 'default',
+        'LUNA_DEFAULT_RDP_RESOLUTION': 'auto',
+        'LUNA_DEFAULT_KEYBOARD_LAYOUT': 'en-us-qwerty',
+        'LUNA_DEFAULT_RDP_CLIENT_OPTION': ['full_screen'],
+        'LUNA_DEFAULT_RDP_COLOR_QUALITY': '32',
+        'LUNA_DEFAULT_RDP_SMART_SIZE': '0',
+        'LUNA_DEFAULT_APPLET_CONNECTION_METHOD': 'web',
+        'LUNA_DEFAULT_FILE_NAME_CONFLICT_RESOLUTION': 'replace',
+        'LUNA_DEFAULT_CHARACTER_TERMINAL_FONT_SIZE': 14,
+        'LUNA_DEFAULT_IS_BACKSPACE_AS_CTRL_H': False,
+        'LUNA_DEFAULT_IS_RIGHT_CLICK_QUICKLY_PASTE': False,
+        'LUNA_DEFAULT_TERMINAL_THEME_NAME': 'Default',
         'TIME_ZONE': 'Asia/Shanghai',
         'FORCE_SCRIPT_NAME': '',
         'SESSION_COOKIE_SECURE': False,
@@ -649,9 +769,6 @@ class Config(dict):
         'GMSSL_ENABLED': False,
         # 操作日志变更字段的存储ES配置
         'OPERATE_LOG_ELASTICSEARCH_CONFIG': {},
-        # Magnus 组件需要监听的 Oracle 端口范围
-        'MAGNUS_ORACLE_PORTS': '30000-30030',
-
         # 记录清理清理
         'LOGIN_LOG_KEEP_DAYS': 180,
         'TASK_LOG_KEEP_DAYS': 180,
@@ -684,6 +801,7 @@ class Config(dict):
 
         'FORGOT_PASSWORD_URL': '',
         'HEALTH_CHECK_TOKEN': '',
+        'PROMETHEUS_METRICS_TOKEN': '',
 
         # Applet 等软件的下载地址
         'APPLET_DOWNLOAD_HOST': '',
@@ -692,25 +810,29 @@ class Config(dict):
         'FTP_FILE_MAX_STORE': 0,
 
         # API 分页
-        'MAX_LIMIT_PER_PAGE': 10000, # 给导出用
+        'MAX_LIMIT_PER_PAGE': 10000,  # 给导出用
         'MAX_PAGE_SIZE': 1000,
-        'DEFAULT_PAGE_SIZE': 200, # 给没有请求分页的用
+        'DEFAULT_PAGE_SIZE': 200,  # 给没有请求分页的用
 
         'LIMIT_SUPER_PRIV': False,
+
+        'LOG_KEEP_MIN_DAYS': 1,
 
         # Chat AI
         'CHAT_AI_ENABLED': False,
         'CHAT_AI_METHOD': 'api',
         'CHAT_AI_EMBED_URL': '',
-        'CHAT_AI_TYPE': 'gpt',
-        'GPT_BASE_URL': '',
-        'GPT_API_KEY': '',
-        'GPT_PROXY': '',
-        'GPT_MODEL': 'gpt-4o-mini',
-        'DEEPSEEK_BASE_URL': '',
-        'DEEPSEEK_API_KEY': '',
-        'DEEPSEEK_PROXY': '',
-        'DEEPSEEK_MODEL': 'deepseek-chat',
+        'CHAT_AI_BASE_URL': '',
+        'CHAT_AI_API_KEY': '',
+        'CHAT_AI_PROXY': '',
+        'CHAT_AI_MODEL': '',
+        'CHAT_AI_PROVIDER': 'openai_compatible',
+        'CHAT_AI_DELEGATION_ISSUER': 'jumpserver-ai',
+        'CHAT_AI_DELEGATION_AUDIENCE': 'jumpserver-core',
+        'CHAT_AI_DELEGATION_KEY_ID': 'v1',
+        'CHAT_AI_DELEGATION_SECRET': '',
+        'CHAT_AI_DELEGATION_VERIFY_KEYS': {},
+        'CHAT_AI_MODEL_TIMEOUT': 120,
         'VIRTUAL_APP_ENABLED': False,
 
         'FILE_UPLOAD_SIZE_LIMIT_MB': 200,
@@ -718,22 +840,51 @@ class Config(dict):
         'TICKET_APPLY_ASSET_SCOPE': 'all',
         'LEAK_PASSWORD_DB_PATH': os.path.join(PROJECT_DIR, 'data', 'system', 'leak_passwords.db'),
 
-        # Ansible Receptor
-        'RECEPTOR_ENABLED': False,
-        'ANSIBLE_RECEPTOR_GATEWAY_PROXY_HOST': 'jms_celery',
-        'ANSIBLE_RECEPTOR_TCP_LISTEN_ADDRESS': 'receptor:7521',
-
         'FILE_UPLOAD_TEMP_DIR': None,
 
         'LOKI_LOG_ENABLED': False,
         'LOKI_BASE_URL': 'http://loki:3100',
 
         'TOOL_USER_ENABLED': False,
+
+        'PRE_CUSTOM_MIDDLEWARES': '',
+        'POST_CUSTOM_MIDDLEWARES': '',
+
+        # Suggestion api
+        'SUGGESTION_LIMIT': 10,
+
+        # oauth2_provider settings 
+        'OAUTH2_PROVIDER_ACCESS_TOKEN_EXPIRE_SECONDS': 60 * 60,
+        'OAUTH2_PROVIDER_REFRESH_TOKEN_EXPIRE_SECONDS': 60 * 60 * 24 * 7,
+        'VENDOR': 'JumpServer',
+
+        # JDMC
+        'JDMC_ENABLED': True,
+        'JDMC_SOCK_PATH': '',
+        'SMALL_LOGO_MODE': os.environ.get('SMALL_LOGO_MODE', False),
+
+        'FLOWER_ENABLED': True,
+
+        # x-forwarded-for 相关
+        'TRUSTED_IP_VERIFY_ENABLED': False,
+        'TRUSTED_IP_SOURCE_HEADER': '',
+        'TRUSTED_IP_SIGN_HEADER': '',
+        'TRUSTED_IP_SIGN_KEY': '',
+
+        'REMOTE_APP_STORE_URL': 'https://apps.fit2cloud.com/jumpserver',
+        'LANGUAGES_SUPPORTED': '',
+
+        # rdp sign cert
+        'RDP_SIGN_ENABLED': False,
+        'RDP_SIGN_CERT': 'rdp_signer.crt',
+        'RDP_SIGN_CERT_KEY': 'rdp_signer.key',
     }
 
     old_config_map = {
         'CONNECTION_TOKEN_ONETIME_EXPIRATION': 'CONNECTION_TOKEN_EXPIRATION',
         'CONNECTION_TOKEN_REUSABLE_EXPIRATION': 'CONNECTION_TOKEN_EXPIRATION_MAX',
+        'PERM_EXPIRED_FIRST_NOTICE_DAYS': 'PERM_EXPIRED_NOTICE_DAYS',
+        'PERM_EXPIRED_DAILY_NOTICE_DAYS': 'PERM_EXPIRED_NOTICE_DAYS',
     }
 
     def __init__(self, *args):

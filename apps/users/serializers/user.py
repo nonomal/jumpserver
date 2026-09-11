@@ -3,17 +3,20 @@
 from functools import partial
 
 from django.conf import settings
+from django.db.models import Exists, OuterRef
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from common.serializers import ResourceLabelsMixin, CommonBulkModelSerializer
+from authentication.const import MFAType
 from common.serializers.fields import (
     EncryptedField,
     ObjectRelatedField,
     LabeledChoiceField,
+    ListMultipleChoiceField,
     PhoneField,
 )
-from common.utils import pretty_string, get_logger
+from common.utils import pretty_string, get_logger, text_hmac_sha256
 from common.validators import PhoneValidator
 from jumpserver.utils import get_current_request
 from orgs.utils import current_org
@@ -140,6 +143,11 @@ class UserSerializer(
         label=_("Can public key authentication"),
         read_only=True,
     )
+    can_ukey_auth = serializers.BooleanField(
+        source="can_use_ukey_login",
+        label=_("Can UKey authentication"),
+        read_only=True,
+    )
     is_face_code_set = serializers.BooleanField(
         label=_("Is face code set"),
         read_only=True,
@@ -157,6 +165,13 @@ class UserSerializer(
         allow_blank=True,
         allow_null=True,
         label=_("Phone"),
+    )
+    allowed_mfa_types = ListMultipleChoiceField(
+        choices=MFAType.choices,
+        required=False,
+        allow_empty=True,
+        label=_("Allowed MFA types"),
+        help_text=_("Leave empty to inherit the global MFA methods"),
     )
     custom_m2m_fields = {
         "system_roles": [BuiltinRole.system_user],
@@ -179,9 +194,10 @@ class UserSerializer(
                 fields_mini
                 + fields_write_only
                 + [
-                    "email", "wechat", "phone", "mfa_level",
+                    "email", "wechat", "phone", "mfa_level", "allowed_mfa_types",
                     "source", *fields_xpack,
                     "created_by", "updated_by", "comment",  # 通用字段
+                    "ukey_sn",  # UKey SN号
                 ]
         )
         fields_date = [
@@ -191,7 +207,7 @@ class UserSerializer(
         fields_bool = [
             "is_superuser", "is_org_admin", "is_service_account",
             "is_valid", "is_expired", "is_active",  # 布尔字段
-            "is_otp_secret_key_bound", "can_public_key_auth",
+            "is_otp_secret_key_bound", "can_public_key_auth", "can_ukey_auth",
             "mfa_enabled", "need_update_password", "is_face_code_set",
         ]
         # 包含不太常用的字段，可以没有
@@ -319,6 +335,14 @@ class UserSerializer(
                 attrs.pop(field, None)
         return attrs
 
+    @staticmethod
+    def clean_ukey_fields(attrs):
+        for field in ("ukey_sn",):
+            value = attrs.get(field)
+            if value is None:
+                attrs.pop(field, None)
+        return attrs
+
     def check_disallow_self_update_fields(self, attrs):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
@@ -342,6 +366,7 @@ class UserSerializer(
         attrs = self.check_disallow_self_update_fields(attrs)
         attrs = self.change_password_to_raw(attrs)
         attrs = self.clean_auth_fields(attrs)
+        attrs = self.clean_ukey_fields(attrs)
         password_strategy = attrs.pop("password_strategy", None)
         request = get_current_request()
         if request:
@@ -394,13 +419,29 @@ class UserRetrieveSerializer(UserSerializer):
     login_confirm_settings = serializers.PrimaryKeyRelatedField(
         read_only=True, source="login_confirm_setting.reviewers", many=True
     )
-    has_public_keys = serializers.BooleanField(
+    has_public_keys = serializers.SerializerMethodField(
         label=_("Has public keys"),
-        read_only=True,
     )
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ["login_confirm_settings", "has_public_keys"]
+
+    @staticmethod
+    def get_has_public_keys(obj):
+        annotated = getattr(obj, '_has_public_keys', None)
+        if annotated is not None:
+            return annotated
+        return obj.has_public_keys
+
+    @classmethod
+    def setup_eager_loading(cls, queryset):
+        from authentication.models import SSHKey
+
+        queryset = super().setup_eager_loading(queryset)
+        active_keys = SSHKey.objects.filter(
+            user_id=OuterRef('pk'), is_active=True
+        )
+        return queryset.annotate(_has_public_keys=Exists(active_keys))
 
 
 class SmsUserSerializer(serializers.ModelSerializer):
@@ -457,7 +498,8 @@ class ServiceAccountSerializer(serializers.ModelSerializer):
             users = User.objects.exclude(id=self.instance.id)
         else:
             users = User.objects.all()
-        if users.filter(email=email) or users.filter(username=username):
+        email_lookup = text_hmac_sha256(email)
+        if users.filter(email_lookup=email_lookup) or users.filter(username=username):
             raise serializers.ValidationError(_("name not unique"), code="unique")
         return name
 

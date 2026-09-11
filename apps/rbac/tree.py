@@ -39,6 +39,7 @@ app_nodes_data = [
     {'id': 'audits', 'view': 'view_audit'},
     {'id': 'rbac', 'view': 'view_console'},
     {'id': 'settings', 'view': 'view_setting'},
+    {'id': 'chat_ai', 'name': _('Chat AI'), 'view': 'view_setting'},
     {'id': 'tickets', 'view': 'view_other'},
     {'id': 'labels', 'view': 'view_console'},
     {'id': 'authentication', 'view': 'view_other'},
@@ -75,10 +76,12 @@ extra_nodes_data = [
 special_pid_mapper = {
     'common.permission': 'view_other',
     'acls.commandfilteracl': 'perms',
+    'acls.clipboardacl': 'perms',
     'acls.commandgroup': 'perms',
     'acls.loginacl': 'perms',
     'acls.loginassetacl': 'perms',
     'acls.connectmethodacl': 'perms',
+    'acls.datamaskingrule': 'perms',
     'xpack.account': 'cloud_import',
     'xpack.syncinstancedetail': 'cloud_import',
     'xpack.syncinstancetask': 'cloud_import',
@@ -128,15 +131,34 @@ special_pid_mapper = {
     "rbac.view_systemtools": "view_workbench",
     'tickets.view_ticket': 'tickets',
     "audits.joblog": "job_audit",
+    'oauth2_provider.accesstoken': 'authentication',
 }
+
+
+if settings.XPACK_ENABLED and settings.JDMC_ENABLED:
+    view_nodes_data.append({'id': 'view_jdmc', 'name': _('JDMC console')})
+    special_pid_mapper["rbac.view_jdmc"] = "view_jdmc"
+
 
 special_setting_pid_mapper = {
     "rbac.view_userloginreport": "report_node",
+    "rbac.add_userloginreport": "report_node",
+    "rbac.delete_userloginreport": "report_node",
     "rbac.view_userchangepasswordreport": "report_node",
+    "rbac.add_userchangepasswordreport": "report_node",
+    "rbac.delete_userchangepasswordreport": "report_node",
     "rbac.view_assetstatisticsreport": "report_node",
+    "rbac.add_assetstatisticsreport": "report_node",
+    "rbac.delete_assetstatisticsreport": "report_node",
     "rbac.view_assetactivityreport": "report_node",
+    "rbac.add_assetactivityreport": "report_node",
+    "rbac.delete_assetactivityreport": "report_node",
     "rbac.view_accountstatisticsreport": "report_node",
+    "rbac.add_accountstatisticsreport": "report_node",
+    "rbac.delete_accountstatisticsreport": "report_node",
     "rbac.view_accountautomationreport": "report_node",
+    "rbac.add_accountautomationreport": "report_node",
+    "rbac.delete_accountautomationreport": "report_node",
     "settings.change_email": "notifications",
     "settings.change_sms": "notifications",
     "settings.change_systemmsgsubscription": "notifications",
@@ -145,7 +167,6 @@ special_setting_pid_mapper = {
     "settings.change_ops": "features",
     "settings.change_vault": "features",
     "settings.change_chatai": "features",
-    "settings.view_chatprompt": "features",
     "settings.change_virtualapp": "features",
     "settings.change_auth": "authentication_setting",
     "terminal.replaystorage": "storage",
@@ -172,6 +193,7 @@ special_setting_pid_mapper = {
     "settings.change_license": "license",
     'orgs.organization': 'view_setting',
     "settings.view_setting": "view_setting",
+    "settings.change_basic": "view_setting",
     "settings.change_other": "other",
 }
 
@@ -183,6 +205,10 @@ verbose_name_mapper = {
     'tickets.view_ticket': _("Ticket"),
     'settings.setting': _("Common setting"),
     'rbac.view_permission': _('View permission tree'),
+    'authentication.passkey': _("Passkey"),
+    'oauth2_provider.accesstoken': _("Access token"),
+    'oauth2_provider.view_accesstoken': _("View access token"),
+    'oauth2_provider.delete_accesstoken': _("Revoke access token"),
 }
 
 xpack_nodes = [

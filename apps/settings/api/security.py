@@ -6,6 +6,7 @@ from rest_framework.generics import ListAPIView, CreateAPIView
 from rest_framework.views import Response
 from rest_framework_bulk.generics import BulkModelViewSet
 
+from common.api.action import RenderToJsonMixin
 from common.drf.filters import IDSpmFilterBackend
 from users.utils import LoginIpBlockUtil
 from ..models import LeakPasswords
@@ -40,9 +41,9 @@ class BlockIPSecurityAPI(ListAPIView):
 
     def list(self, request, *args, **kwargs):
         ips = self.get_ips()
-        offset, limit = self.get_page_offset_and_limit()
-        slice_ips = ips[offset:offset + limit]
-        data = [{'id': str(uuid4()), 'ip': ip} for ip in slice_ips]
+        # offset, limit = self.get_page_offset_and_limit()
+        # slice_ips = ips[offset:offset + limit]
+        data = [{'id': str(uuid4()), 'ip': ip} for ip in ips]
         ser = self.get_serializer(data, many=True)
         data = {'count': len(ips), 'results': ser.data}
         return Response(data=data, status=200)
@@ -61,7 +62,7 @@ class UnlockIPSecurityAPI(CreateAPIView):
         return Response(status=200)
 
 
-class LeakPasswordViewSet(BulkModelViewSet):
+class LeakPasswordViewSet(BulkModelViewSet, RenderToJsonMixin):
     serializer_class = LeakPasswordPSerializer
     model = LeakPasswords
     rbac_perms = {
@@ -69,6 +70,12 @@ class LeakPasswordViewSet(BulkModelViewSet):
     }
     queryset = LeakPasswords.objects.none()
     search_fields = ['password']
+
+    def get_object(self):
+        pk = self.kwargs.get('pk')
+        if pk:
+            return self.get_queryset().get(id=pk)
+        return super().get_object()
 
     def get_queryset(self):
         return LeakPasswords.objects.using('sqlite').all()

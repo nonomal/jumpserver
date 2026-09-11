@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #
+import os
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -69,6 +70,8 @@ class AccessTokenAuthentication(authentication.BaseAuthentication):
             msg = _('Invalid token header. Sign string should not contain invalid characters.')
             raise exceptions.AuthenticationFailed(msg)
         user, header = self.authenticate_credentials(token)
+        if not user:
+            return None
         after_authenticate_update_date(user)
         return user, header
 
@@ -77,10 +80,6 @@ class AccessTokenAuthentication(authentication.BaseAuthentication):
         model = get_user_model()
         user_id = cache.get(token)
         user = get_object_or_none(model, id=user_id)
-
-        if not user:
-            msg = _('Invalid token or cache refreshed.')
-            raise exceptions.AuthenticationFailed(msg)
         return user, None
 
     def authenticate_header(self, request):
@@ -110,13 +109,15 @@ class SessionAuthentication(authentication.SessionAuthentication):
         user = getattr(request._request, 'user', None)
 
         # Unauthenticated, CSRF validation not required
-        if not user or not user.is_active:
+        if not user or not user.is_active or not user.is_valid:
             return None
 
-        try:
-            self.enforce_csrf(request)
-        except exceptions.AuthenticationFailed:
-            return None
+        ignore_csrf_check = os.environ.get("DOMAINS", "") == "*"
+        if not ignore_csrf_check:
+            try:
+                self.enforce_csrf(request)
+            except exceptions.AuthenticationFailed:
+                return None
 
         # CSRF passed with authenticated user
         return user, None
